@@ -32,14 +32,16 @@ public class CreateClienteCommandHandler : IMediatorCommandHandler<CreateCliente
         var email = Email.Create(request.Email);
 
         // Validar se CPF já existe
-        var clienteComCpf = await _repository.GetByAnyAsync(c => c.Cpf.Value == cpf.Value, cancellationToken);
+        // Comparar diretamente os ValueObjects - EF Core fará a conversão através do HasConversion
+        var clienteComCpf = await _repository.GetByAnyAsync(c => c.Cpf == cpf, cancellationToken);
         if (clienteComCpf)
         {
             throw new ClienteJaExisteException($"Já existe um cliente cadastrado com o CPF {cpf.Formatted}.");
         }
 
         // Validar se Email já existe
-        var clienteComEmail = await _repository.GetByAnyAsync(c => c.Email.Value == email.Value, cancellationToken);
+        // Comparar diretamente os ValueObjects - EF Core fará a conversão através do HasConversion
+        var clienteComEmail = await _repository.GetByAnyAsync(c => c.Email == email, cancellationToken);
         if (clienteComEmail)
         {
             throw new ClienteJaExisteException($"Já existe um cliente cadastrado com o e-mail {email.Value}.");

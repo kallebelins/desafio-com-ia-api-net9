@@ -67,7 +67,8 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
 - [x] Configurar builder do WebApplication
 - [x] Configurar logging básico
 - [x] Configurar CORS (se necessário)
-- [x] Configurar Swagger/OpenAPI
+- [x] Configurar Swagger/OpenAPI usando Native OpenAPI do Mvp24Hours (`AddMvp24HoursNativeOpenApi`)
+- [x] Remover biblioteca Swashbuckle.AspNetCore (substituída pelo Native OpenAPI)
 
 #### W1.7: Configurar Program.cs - PostgreSQL e DbContext
 - [x] Criar classe `ApplicationDbContext` no projeto Infrastructure herdando de `Mvp24HoursContext`
@@ -332,18 +333,26 @@ Implementar o cadastro de cliente utilizando o padrão CQRS com Commands.
 - [x] Atualizar middleware para tratar `ClienteJaExisteException` como 409 Conflict
 
 #### W3.9: Testes de Integração - Cadastro Válido
-- [ ] Criar teste de integração para cadastro com dados válidos
-- [ ] Validar resposta 201 Created
-- [ ] Validar dados retornados
-- [ ] Validar persistência no banco
+- [x] Criar projeto de teste de integração (`DesafioComIA.Api.IntegrationTests`) seguindo padrão xUnit, usando SDK tests/netcore, em solution separada (ou subpasta `tests/`), referenciando o projeto API principal
+- [x] Criar teste de integração para cadastro com dados válidos
+- [x] Validar resposta 201 Created
+- [x] Validar dados retornados
+- [x] Validar persistência no banco
+
+#### W3.9.1: Configurar TestContainers para PostgreSQL nos testes de integração
+- [x] Adicionar pacote `Testcontainers.PostgreSql` no projeto de testes de integração
+- [x] Criar base fixture/configuração para iniciar container do PostgreSQL para os testes
+- [x] Garantir que a string de conexão dos testes utilize o banco do container
+- [x] Ajustar setup (`CustomWebApplicationFactory`) para consumir a string de conexão dinâmica vinda do container
+- [x] Garantir teardown e limpeza do ambiente após os testes
 
 #### W3.10: Testes de Integração - Validações
-- [ ] Teste: CPF duplicado retorna 409 Conflict
-- [ ] Teste: Email duplicado retorna 409 Conflict
-- [ ] Teste: CPF inválido retorna 400 Bad Request
-- [ ] Teste: Email inválido retorna 400 Bad Request
-- [ ] Teste: Nome muito curto retorna 400 Bad Request
-- [ ] Teste: Nome muito longo retorna 400 Bad Request
+- [x] Teste: CPF duplicado retorna 409 Conflict
+- [x] Teste: Email duplicado retorna 409 Conflict
+- [x] Teste: CPF inválido retorna 400 Bad Request
+- [x] Teste: Email inválido retorna 400 Bad Request
+- [x] Teste: Nome muito curto retorna 400 Bad Request
+- [x] Teste: Nome muito longo retorna 400 Bad Request
 
 ---
 

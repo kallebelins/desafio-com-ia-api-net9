@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using FluentValidation;
 using DesafioComIA.Infrastructure.Data;
 using DesafioComIA.Api.Middleware;
-using Mvp24Hours.WebAPI.Extensions;
 using Mvp24Hours.Extensions;
 using Mvp24Hours.Infrastructure.Cqrs.Extensions;
 
@@ -27,9 +26,12 @@ builder.Services.AddCors(options =>
 // Configure Controllers
 builder.Services.AddControllers();
 
-// Configure OpenAPI/Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Configure Native OpenAPI (skip in Testing environment)
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddOpenApi();
+}
 
 // Configure PostgreSQL and DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -83,14 +85,9 @@ builder.Services.AddProblemDetails();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Desafio Com IA API v1");
-        c.RoutePrefix = string.Empty; // Swagger UI na raiz
-    });
+    app.MapOpenApi();
 }
 
 // Use Exception Handling Middleware (must be early in pipeline)
