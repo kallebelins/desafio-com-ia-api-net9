@@ -40,9 +40,9 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
 - [x] Instalar `Mvp24Hours.WebAPI` (versão 9.*) no projeto API
 
 #### W1.3: Instalar Pacotes NuGet - PostgreSQL
-- [ ] Instalar `Npgsql.EntityFrameworkCore.PostgreSQL` (versão 9.*) no projeto Infrastructure
-- [ ] Instalar `Microsoft.EntityFrameworkCore.Design` (versão 9.*) no projeto Infrastructure
-- [ ] Instalar `Microsoft.EntityFrameworkCore.Tools` (versão 9.*) no projeto Infrastructure
+- [x] Instalar `Npgsql.EntityFrameworkCore.PostgreSQL` (versão 9.*) no projeto Infrastructure
+- [x] Instalar `Microsoft.EntityFrameworkCore.Design` (versão 9.*) no projeto Infrastructure
+- [x] Instalar `Microsoft.EntityFrameworkCore.Tools` (versão 9.*) no projeto Infrastructure
 
 #### W1.4: Instalar Pacotes NuGet - Validação e Mapeamento
 - [ ] Instalar `FluentValidation` (versão 11.*) no projeto Application
