@@ -4,6 +4,7 @@ using DesafioComIA.Infrastructure.Data;
 using DesafioComIA.Api.Middleware;
 using Mvp24Hours.Extensions;
 using Mvp24Hours.Infrastructure.Cqrs.Extensions;
+using Mvp24Hours.WebAPI.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,11 +27,15 @@ builder.Services.AddCors(options =>
 // Configure Controllers
 builder.Services.AddControllers();
 
-// Configure Native OpenAPI (skip in Testing environment)
+// Configure Native OpenAPI with Mvp24Hours (skip in Testing environment)
 if (!builder.Environment.IsEnvironment("Testing"))
 {
-    builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddOpenApi();
+    builder.Services.AddMvp24HoursNativeOpenApi(options =>
+    {
+        options.Title = "DesafioComIA API";
+        options.Version = "1.0.0";
+        options.EnableSwaggerUI = true;
+    });
 }
 
 // Configure PostgreSQL and DbContext
@@ -87,7 +92,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
 {
-    app.MapOpenApi();
+    app.MapMvp24HoursNativeOpenApi();
 }
 
 // Use Exception Handling Middleware (must be early in pipeline)
@@ -103,3 +108,6 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+// Required for integration tests with WebApplicationFactory
+public partial class Program { }
