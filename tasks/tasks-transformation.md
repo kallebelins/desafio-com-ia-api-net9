@@ -18,18 +18,19 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
 ### Microtarefas
 
 #### W1.1: Criar Estrutura de Projeto
-- [ ] Criar projeto WebAPI .NET 9: `dotnet new webapi -n DesafioComIA.Api`
-- [ ] Criar estrutura de pastas:
+- [x] Criar projeto WebAPI .NET 9: `dotnet new webapi -n DesafioComIA.Api`
+- [x] Criar estrutura de pastas:
   - `src/DesafioComIA.Api/` (API Layer)
   - `src/DesafioComIA.Application/` (Application Layer - Commands/Queries)
   - `src/DesafioComIA.Domain/` (Domain Layer - Entities)
   - `src/DesafioComIA.Infrastructure/` (Infrastructure Layer - Data Access)
-- [ ] Configurar solution: `dotnet new sln -n DesafioComIA`
-- [ ] Adicionar projetos à solution
-- [ ] Configurar referências entre projetos:
+- [x] Configurar solution: `dotnet new sln -n DesafioComIA`
+- [x] Adicionar projetos à solution
+- [x] Configurar referências entre projetos:
   - API → Application, Infrastructure
   - Application → Infrastructure, Domain
   - Infrastructure → Domain
+- [x] Adicione .gitignore
 
 #### W1.2: Instalar Pacotes NuGet - Core
 - [ ] Instalar `Mvp24Hours.Core` (versão 9.*) em todos os projetos necessários
