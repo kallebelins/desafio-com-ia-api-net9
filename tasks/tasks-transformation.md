@@ -197,58 +197,60 @@ Criar a entidade Cliente, configurar o DbContext e preparar as migrations do ban
 - [x] Usar ValueObjects `Cpf` e `Email` já existentes do Mvp24Hours
 
 #### W2.2: Configurar Entity no DbContext
-- [ ] Abrir `ApplicationDbContext` no projeto Infrastructure
-- [ ] Criar `DbSet<Cliente> Clientes { get; set; }`
-- [ ] Configurar `OnModelCreating`:
-  - Configurar nome da tabela: `"Clientes"`
-  - Configurar chave primária: `Id`
-  - Configurar índice único para `Cpf.Valor` (propriedade do ValueObject)
-  - Configurar índice único para `Email.Valor` (propriedade do ValueObject)
-  - Configurar tamanho máximo de `Nome` (200)
-  - Configurar `Cpf` como não nulo (ValueObject)
-  - Configurar `Email` como não nulo (ValueObject)
-  - Configurar `Nome` como não nulo
+- [x] Abrir `ApplicationDbContext` no projeto Infrastructure
+- [x] Criar `DbSet<Cliente> Clientes { get; set; }`
+- [x] Criar arquivo de configuração separado para a entidade `Cliente` usando Fluent API (`ClienteConfiguration.cs` em `Infrastructure/Data/Configurations`)
+- [x] Registrar configuração usando `.ApplyConfiguration(new ClienteConfiguration())` em `OnModelCreating`
+- [x] No arquivo de configuração, aplicar:
+  - Nome da tabela: `"Clientes"`
+  - Chave primária: `Id`
+  - Índice único para `Cpf.Valor` (propriedade do ValueObject)
+  - Índice único para `Email.Valor` (propriedade do ValueObject)
+  - Tamanho máximo de `Nome` (200)
+  - `Cpf` como não nulo
+  - `Email` como não nulo
+  - `Nome` como não nulo
 
 #### W2.3: Criar Migration Inicial
-- [ ] Executar: `dotnet ef migrations add InitialCreate --project src/DesafioComIA.Infrastructure --startup-project src/DesafioComIA.Api`
-- [ ] Verificar arquivo de migration gerado
-- [ ] Validar SQL gerado para criação da tabela `Clientes`
-- [ ] Validar índices únicos para `Cpf.Valor` e `Email.Valor`
+- [x] Executar: `dotnet ef migrations add InitialCreate --project src/DesafioComIA.Infrastructure --startup-project src/DesafioComIA.Api`
+- [x] Verificar arquivo de migration gerado
+- [x] Validar SQL gerado para criação da tabela `Clientes`
+- [x] Validar índices únicos para `Cpf.Valor` e `Email.Valor`
 
 #### W2.4: Aplicar Migration
-- [ ] Executar: `dotnet ef database update --project src/DesafioComIA.Infrastructure --startup-project src/DesafioComIA.Api`
-- [ ] Verificar criação da tabela no PostgreSQL
-- [ ] Validar estrutura da tabela (colunas, índices, constraints)
+- [x] Executar: `dotnet ef database update --project src/DesafioComIA.Infrastructure --startup-project src/DesafioComIA.Api`
+- [x] Verificar criação da tabela no PostgreSQL
+- [x] Validar estrutura da tabela (colunas, índices, constraints)
 
 #### W2.5: Criar DTOs Base
-- [ ] Criar pasta `DTOs` no projeto Application
-- [ ] Criar `ClienteDto`:
+- [x] Criar pasta `DTOs` no projeto Application
+- [x] Criar `ClienteDto`:
   - `Id` (Guid)
   - `Nome` (string)
   - `Cpf` (string)
   - `Email` (string)
-- [ ] Criar `CreateClienteDto`:
+- [x] Criar `CreateClienteDto`:
   - `Nome` (string)
   - `Cpf` (string)
   - `Email` (string)
-- [ ] Criar `ClienteListDto` (para listagem):
+- [x] Criar `ClienteListDto` (para listagem):
   - `Id` (Guid)
   - `Nome` (string)
   - `Cpf` (string)
   - `Email` (string)
 
 #### W2.6: Configurar AutoMapper Profiles
-- [ ] Criar `ClienteProfile` no projeto Application
-- [ ] Configurar mapeamento `Cliente` → `ClienteDto`:
+- [x] Criar `ClienteProfile` no projeto Application
+- [x] Configurar mapeamento `Cliente` → `ClienteDto`:
   - Mapear `Cpf.Valor` → `Cpf` (string)
   - Mapear `Email.Valor` → `Email` (string)
-- [ ] Configurar mapeamento `Cliente` → `ClienteListDto`:
+- [x] Configurar mapeamento `Cliente` → `ClienteListDto`:
   - Mapear `Cpf.Valor` → `Cpf` (string)
   - Mapear `Email.Valor` → `Email` (string)
-- [ ] Configurar mapeamento `CreateClienteDto` → `Cliente`:
+- [x] Configurar mapeamento `CreateClienteDto` → `Cliente`:
   - Criar instância de `Cpf` ValueObject a partir da string
   - Criar instância de `Email` ValueObject a partir da string
-- [ ] Validar mapeamentos com testes unitários (opcional)
+- [x] Validar mapeamentos com testes unitários (opcional)
 
 ---
 

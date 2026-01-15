@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
 using FluentValidation;
 using DesafioComIA.Infrastructure.Data;
 using DesafioComIA.Api.Middleware;
+using Mvp24Hours.WebAPI.Extensions;
+using Mvp24Hours.Extensions;
+using Mvp24Hours.Infrastructure.Cqrs.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,15 +26,7 @@ builder.Services.AddCors(options =>
 
 // Configure OpenAPI/Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "Desafio Com IA API",
-        Version = "v1",
-        Description = "API de Cliente com CQRS utilizando Mvp24Hours e PostgreSQL"
-    });
-});
+builder.Services.AddSwaggerGen();
 
 // Configure PostgreSQL and DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -67,10 +61,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 // Register AutoMapper using Mvp24Hours MapService
 // Include Application assembly where DTOs and mappings will be defined
 var applicationAssembly = System.Reflection.Assembly.Load("DesafioComIA.Application");
-builder.Services.AddMvp24HoursMapService(
-    typeof(Program).Assembly,
-    applicationAssembly
-);
+builder.Services.AddMvp24HoursMapService(applicationAssembly);
 
 // Configure Health Checks
 builder.Services.AddHealthChecks()

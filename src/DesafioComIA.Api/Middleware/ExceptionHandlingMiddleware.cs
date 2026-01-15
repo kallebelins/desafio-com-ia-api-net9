@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Mvp24Hours.Core.Exceptions;
 using FluentValidation;
+using Mvp24HoursValidationException = Mvp24Hours.Core.Exceptions.ValidationException;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -51,15 +52,21 @@ public class ExceptionHandlingMiddleware
                 problemDetails.Status = (int)statusCode;
                 problemDetails.Title = "Business rule violation";
                 problemDetails.Detail = businessEx.Message;
-                problemDetails.Extensions["errors"] = businessEx.Errors;
                 break;
 
-            case ValidationException validationEx:
+            case Mvp24HoursValidationException validationEx:
+                statusCode = HttpStatusCode.BadRequest;
+                problemDetails.Status = (int)statusCode;
+                problemDetails.Title = "Validation error";
+                problemDetails.Detail = validationEx.Message;
+                break;
+
+            case FluentValidation.ValidationException fluentValidationEx:
                 statusCode = HttpStatusCode.BadRequest;
                 problemDetails.Status = (int)statusCode;
                 problemDetails.Title = "Validation error";
                 problemDetails.Detail = "One or more validation errors occurred";
-                problemDetails.Extensions["errors"] = validationEx.Errors
+                problemDetails.Extensions["errors"] = fluentValidationEx.Errors
                     .GroupBy(e => e.PropertyName)
                     .ToDictionary(
                         g => g.Key,
