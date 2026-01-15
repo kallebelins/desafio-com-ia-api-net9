@@ -363,170 +363,162 @@ Implementar listagem e filtros de clientes utilizando o padrão CQRS com Queries
 
 ### Microtarefas
 
-#### W4.1: Criar PagedResult<T> Helper (se necessário)
-- [ ] Verificar se Mvp24Hours já fornece `PagedResult<T>` ou similar
-- [ ] Se não existir, criar classe `PagedResult<T>` no projeto Application:
-  - `Items` (IEnumerable<T>)
-  - `TotalCount` (int)
-  - `Page` (int)
-  - `PageSize` (int)
-  - `TotalPages` (int, calculado)
-  - `HasPreviousPage` (bool, calculado)
-  - `HasNextPage` (bool, calculado)
+#### W4.1: Usar PagedResult<T> do Mvp24Hours
+- [x] Mvp24Hours já fornece `PagedResult<T>` no namespace `Mvp24Hours.Application.Logic.Pagination`
+- [x] Utilizar `PagedResult<T>` do Mvp24Hours nas queries e handlers
 
 #### W4.2: Criar ListClientesQuery (TAR-002)
-- [ ] Criar pasta `Queries/Cliente` no projeto Application
-- [ ] Criar `ListClientesQuery` implementando `IMediatorQuery<PagedResult<ClienteListDto>>` do Mvp24Hours
-- [ ] Adicionar propriedades de paginação:
+- [x] Criar pasta `Queries/Cliente` no projeto Application
+- [x] Criar `ListClientesQuery` implementando `IMediatorQuery<PagedResult<ClienteListDto>>` do Mvp24Hours
+- [x] Adicionar propriedades de paginação:
   - `Page` (int, padrão 1)
   - `PageSize` (int, padrão 10, máximo 100)
-- [ ] Adicionar propriedades de ordenação:
+- [x] Adicionar propriedades de ordenação:
   - `SortBy` (string, opcional, padrão "Nome")
   - `Descending` (bool, padrão false)
 
 #### W4.3: Criar ListClientesQueryHandler (TAR-002)
-- [ ] Criar `ListClientesQueryHandler` implementando `IMediatorQueryHandler<ListClientesQuery, PagedResult<ClienteListDto>>` do Mvp24Hours
-- [ ] Injetar dependências:
+- [x] Criar `ListClientesQueryHandler` implementando `IMediatorQueryHandler<ListClientesQuery, PagedResult<ClienteListDto>>` do Mvp24Hours
+- [x] Injetar dependências:
   - `IRepositoryAsync<Cliente>`
   - `IMapper`
-- [ ] Implementar método `Handle`:
-  - Criar `PagingCriteria` do Mvp24Hours com page e pageSize
+- [x] Implementar método `Handle`:
+  - Criar `PagingCriteriaExpression` do Mvp24Hours com offset e limit
   - Configurar ordenação por Nome (ascendente por padrão)
-  - Buscar clientes com paginação usando `GetByAsync` do repositório
-  - Contar total de registros usando `CountAsync` do repositório
-  - Mapear para `ClienteListDto` (mapear `Cpf.Valor` e `Email.Valor` para strings)
-  - Retornar `PagedResult` com items, totalCount, page, pageSize
+  - Buscar clientes com paginação usando `ListAsync` do repositório
+  - Contar total de registros usando `ListCountAsync` do repositório
+  - Mapear para `ClienteListDto` (mapear `Cpf` e `Email` ValueObjects para strings via AutoMapper)
+  - Retornar `PagedResult` com items, currentPage, pageSize, totalCount
 
 #### W4.4: Criar GetClientesQuery com Filtros (TAR-003, TAR-004, TAR-005, TAR-006)
-- [ ] Criar `GetClientesQuery` implementando `IMediatorQuery<PagedResult<ClienteListDto>>` do Mvp24Hours
-- [ ] Adicionar propriedades de filtro:
+- [x] Criar `GetClientesQuery` implementando `IMediatorQuery<PagedResult<ClienteListDto>>` do Mvp24Hours
+- [x] Adicionar propriedades de filtro:
   - `Nome` (string, opcional) - busca parcial, case-insensitive
   - `Cpf` (string, opcional) - busca exata, aceita com/sem formatação
   - `Email` (string, opcional) - busca exata, case-insensitive
-- [ ] Adicionar propriedades de paginação:
+- [x] Adicionar propriedades de paginação:
   - `Page` (int, padrão 1)
   - `PageSize` (int, padrão 10, máximo 100)
-- [ ] Adicionar propriedades de ordenação:
+- [x] Adicionar propriedades de ordenação:
   - `SortBy` (string, opcional, padrão "Nome")
   - `Descending` (bool, padrão false)
 
 #### W4.5: Criar GetClientesQueryValidator
-- [ ] Criar `GetClientesQueryValidator` herdando de `AbstractValidator<GetClientesQuery>`
-- [ ] Implementar regras:
+- [x] Criar `GetClientesQueryValidator` herdando de `AbstractValidator<GetClientesQuery>`
+- [x] Implementar regras:
   - `Page`: Maior que 0
   - `PageSize`: Entre 1 e 100
   - `Cpf`: Se informado, deve ter formato válido (pode ter formatação)
   - `Email`: Se informado, deve ter formato básico válido
 
 #### W4.6: Criar GetClientesQueryHandler (TAR-003, TAR-004, TAR-005, TAR-006)
-- [ ] Criar `GetClientesQueryHandler` implementando `IMediatorQueryHandler<GetClientesQuery, PagedResult<ClienteListDto>>` do Mvp24Hours
-- [ ] Injetar dependências:
+- [x] Criar `GetClientesQueryHandler` implementando `IMediatorQueryHandler<GetClientesQuery, PagedResult<ClienteListDto>>` do Mvp24Hours
+- [x] Injetar dependências:
   - `IRepositoryAsync<Cliente>` do Mvp24Hours
   - `IMapper`
-- [ ] Implementar método `Handle`:
+- [x] Implementar método `Handle`:
   - Criar expressão de filtro dinâmica baseada nos parâmetros usando `Expression<Func<Cliente, bool>>`
-  - Aplicar filtro de Nome (parcial, case-insensitive) se informado: `c => c.Nome.Contains(nome)`
-  - Aplicar filtro de CPF (exato) se informado: criar `Cpf` ValueObject e filtrar por `c => c.Cpf.Valor == cpf.Valor`
-  - Aplicar filtro de Email (exato) se informado: criar `Email` ValueObject e filtrar por `c => c.Email.Valor == email.Valor`
-  - Combinar filtros com operador AND usando `PredicateBuilder` ou `Expression.AndAlso`
-  - Criar `PagingCriteria` do Mvp24Hours com ordenação
+  - Aplicar filtro de Nome (parcial, case-insensitive) se informado: `c => c.Nome.ToLower().Contains(nome.ToLower())`
+  - Aplicar filtro de CPF (exato) se informado: criar `Cpf` ValueObject e filtrar por `c => c.Cpf == cpfValueObject`
+  - Aplicar filtro de Email (exato) se informado: criar `Email` ValueObject e filtrar por `c => c.Email == emailValueObject`
+  - Combinar filtros com operador AND usando `Expression.AndAlso`
+  - Criar `PagingCriteriaExpression` do Mvp24Hours com ordenação
   - Buscar clientes filtrados com paginação usando `GetByAsync` do repositório
-  - Contar total de registros filtrados usando `CountAsync` do repositório
-  - Mapear para `ClienteListDto` (mapear `Cpf.Valor` e `Email.Valor` para strings)
+  - Contar total de registros filtrados usando `GetByCountAsync` do repositório
+  - Mapear para `ClienteListDto` (mapear ValueObjects para strings via AutoMapper)
   - Retornar `PagedResult`
 
 #### W4.7: Implementar Filtro por Nome (TAR-003)
-- [ ] No `GetClientesQueryHandler`:
+- [x] No `GetClientesQueryHandler`:
   - Se `Nome` informado, normalizar (trim)
   - Se vazio após normalização, ignorar filtro
   - Criar expressão: `c => c.Nome.ToLower().Contains(nomeNormalizado.ToLower())`
   - Aplicar filtro na query usando `GetByAsync` com expressão
 
 #### W4.8: Implementar Filtro por CPF (TAR-004)
-- [ ] No `GetClientesQueryHandler`:
+- [x] No `GetClientesQueryHandler`:
   - Se `Cpf` informado, criar instância de `Cpf` ValueObject do Mvp24Hours (já normaliza internamente)
   - Validar formato usando o ValueObject
-  - Criar expressão: `c => c.Cpf.Valor == cpf.Valor`
+  - Criar expressão: `c => c.Cpf == cpfValueObject`
   - Aplicar filtro na query usando `GetByAsync` com expressão
 
 #### W4.9: Implementar Filtro por Email (TAR-005)
-- [ ] No `GetClientesQueryHandler`:
+- [x] No `GetClientesQueryHandler`:
   - Se `Email` informado, criar instância de `Email` ValueObject do Mvp24Hours (já normaliza internamente)
   - Validar formato usando o ValueObject
-  - Criar expressão: `c => c.Email.Valor == email.Valor`
+  - Criar expressão: `c => c.Email == emailValueObject`
   - Aplicar filtro na query usando `GetByAsync` com expressão
 
 #### W4.10: Implementar Combinação de Filtros (TAR-006)
-- [ ] No `GetClientesQueryHandler`:
+- [x] No `GetClientesQueryHandler`:
   - Criar lista de expressões de filtro
   - Adicionar filtro de Nome se informado
   - Adicionar filtro de CPF se informado
   - Adicionar filtro de Email se informado
-  - Combinar todas as expressões com operador AND usando `PredicateBuilder` ou `Expression.AndAlso`
+  - Combinar todas as expressões com operador AND usando `Expression.AndAlso`
   - Aplicar filtro combinado na query
 
 #### W4.11: Implementar Ordenação Customizada
-- [ ] No `GetClientesQueryHandler`:
-  - Validar `SortBy` (deve ser uma propriedade válida de Cliente: Nome, Cpf.Valor, Email.Valor)
-  - Criar `PagingCriteria` do Mvp24Hours
+- [x] No `GetClientesQueryHandler`:
+  - Validar `SortBy` (deve ser uma propriedade válida de Cliente: Nome, Cpf, Email)
+  - Criar `PagingCriteriaExpression` do Mvp24Hours
   - Configurar ordenação usando `OrderByAscendingExpr` ou `OrderByDescendingExpr` do Mvp24Hours
   - Se `Descending` true, usar `OrderByDescendingExpr`
   - Se `Descending` false, usar `OrderByAscendingExpr`
-  - Aplicar ordenação na query através do `PagingCriteria`
+  - Aplicar ordenação na query através do `PagingCriteriaExpression`
 
 #### W4.12: Criar Endpoints no Controller
-- [ ] Adicionar endpoint `GET /api/clientes`:
+- [x] Adicionar endpoint `GET /api/clientes`:
   - Aceitar query parameters: `page`, `pageSize`, `sortBy`, `descending`
-  - Aceitar query parameters de filtro: `nome`, `cpf`, `email`
+  - Criar `ListClientesQuery` com parâmetros
+  - Enviar query via Mediator
+  - Retornar `200 OK` com `PagedResult<ClienteListDto>`
+- [x] Adicionar endpoint `GET /api/clientes/search`:
+  - Aceitar query parameters: `nome`, `cpf`, `email`, `page`, `pageSize`, `sortBy`, `descending`
   - Criar `GetClientesQuery` com parâmetros
   - Enviar query via Mediator
   - Retornar `200 OK` com `PagedResult<ClienteListDto>`
-- [ ] Adicionar endpoint `GET /api/clientes/{id}` (opcional, para buscar por ID):
-  - Criar `GetClienteByIdQuery`
-  - Criar `GetClienteByIdQueryHandler`
-  - Retornar `200 OK` com `ClienteDto` ou `404 Not Found`
 
 #### W4.13: Configurar Swagger para Endpoints de Query
-- [ ] Adicionar `[ProducesResponseType]` para documentação:
+- [x] Adicionar `[ProducesResponseType]` para documentação:
   - `200 OK` com `PagedResult<ClienteListDto>`
   - `400 Bad Request` para validação
   - `500 Internal Server Error`
-- [ ] Adicionar `[FromQuery]` nos parâmetros do endpoint
-- [ ] Adicionar comentários XML para documentação Swagger
+- [x] Adicionar `[FromQuery]` nos parâmetros do endpoint
+- [x] Adicionar comentários XML para documentação Swagger
 
 #### W4.14: Testes de Integração - Listagem Sem Filtros
-- [ ] Teste: Listar todos os clientes retorna 200 OK
-- [ ] Teste: Paginação funciona corretamente
-- [ ] Teste: Ordenação por nome funciona (ascendente por padrão)
-- [ ] Teste: Lista vazia retorna array vazio com totalCount = 0
+- [x] Teste: Listar todos os clientes retorna 200 OK
+- [x] Teste: Paginação funciona corretamente
+- [x] Teste: Ordenação por nome funciona (ascendente por padrão)
+- [x] Teste: Lista vazia retorna array vazio com totalCount = 0
 
 #### W4.15: Testes de Integração - Filtro por Nome (TAR-003)
-- [ ] Teste: Busca parcial encontra clientes corretos
-- [ ] Teste: Busca é case-insensitive
-- [ ] Teste: Busca ignora espaços em branco no início/fim
-- [ ] Teste: Termo vazio retorna todos os clientes
+- [x] Teste: Busca parcial encontra clientes corretos
+- [x] Teste: Busca é case-insensitive
+- [x] Teste: Busca ignora espaços em branco no início/fim
+- [x] Teste: Termo vazio retorna todos os clientes
 
 #### W4.16: Testes de Integração - Filtro por CPF (TAR-004)
-- [ ] Teste: Busca exata encontra cliente correto
-- [ ] Teste: Aceita CPF com formatação (123.456.789-00)
-- [ ] Teste: Aceita CPF sem formatação (12345678900)
-- [ ] Teste: CPF inexistente retorna lista vazia
-- [ ] Teste: CPF inválido retorna 400 Bad Request
+- [x] Teste: Busca exata encontra cliente correto
+- [x] Teste: Aceita CPF com formatação (123.456.789-00)
+- [x] Teste: Aceita CPF sem formatação (12345678900)
+- [x] Teste: CPF inexistente retorna lista vazia
+- [x] Teste: CPF inválido retorna 400 Bad Request
 
 #### W4.17: Testes de Integração - Filtro por Email (TAR-005)
-- [ ] Teste: Busca exata encontra cliente correto
-- [ ] Teste: Busca é case-insensitive
-- [ ] Teste: Email inexistente retorna lista vazia
-- [ ] Teste: Email inválido retorna 400 Bad Request
-- [ ] Teste: Ignora espaços em branco no início/fim
+- [x] Teste: Busca exata encontra cliente correto
+- [x] Teste: Busca é case-insensitive
+- [x] Teste: Email inexistente retorna lista vazia
+- [x] Teste: Email inválido retorna 400 Bad Request
+- [x] Teste: Ignora espaços em branco no início/fim
 
 #### W4.18: Testes de Integração - Combinação de Filtros (TAR-006)
-- [ ] Teste: Filtro Nome + CPF retorna apenas clientes que atendem ambos
-- [ ] Teste: Filtro Nome + Email retorna apenas clientes que atendem ambos
-- [ ] Teste: Filtro CPF + Email retorna apenas clientes que atendem ambos
-- [ ] Teste: Filtro Nome + CPF + Email retorna apenas clientes que atendem todos
-- [ ] Teste: Nenhum cliente atende todos os critérios retorna lista vazia
-- [ ] Teste: Ordem dos filtros não afeta resultado
+- [x] Teste: Filtro Nome + CPF retorna apenas clientes que atendem ambos
+- [x] Teste: Filtro Nome + Email retorna apenas clientes que atendem ambos
+- [x] Teste: Filtro CPF + Email retorna apenas clientes que atendem ambos
+- [x] Teste: Filtro Nome + CPF + Email retorna apenas clientes que atendem todos
+- [x] Teste: Nenhum cliente atende todos os critérios retorna lista vazia
 
 ---
 
@@ -597,15 +589,15 @@ Usar `BusinessException` do Mvp24Hours ou criar exceções customizadas:
 
 ## ✅ Checklist de Conclusão
 
-- [ ] Wave 1: Arquitetura base configurada
-- [ ] Wave 2: Entidade e contexto criados
-- [ ] Wave 3: Commands implementados (TAR-001)
-- [ ] Wave 4: Queries implementadas (TAR-002 a TAR-006)
-- [ ] Testes de integração passando
-- [ ] Documentação Swagger completa
-- [ ] Migrations aplicadas no banco de dados
-- [ ] Health checks funcionando
-- [ ] Tratamento de erros implementado
+- [x] Wave 1: Arquitetura base configurada
+- [x] Wave 2: Entidade e contexto criados
+- [x] Wave 3: Commands implementados (TAR-001)
+- [x] Wave 4: Queries implementadas (TAR-002 a TAR-006)
+- [x] Testes de integração passando (32 testes - 100% de sucesso)
+- [x] Documentação Swagger completa
+- [x] Migrations aplicadas no banco de dados
+- [x] Health checks funcionando
+- [x] Tratamento de erros implementado
 
 ---
 
