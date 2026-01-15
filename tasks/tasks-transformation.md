@@ -67,8 +67,33 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
 - [x] Configurar builder do WebApplication
 - [x] Configurar logging básico
 - [x] Configurar CORS (se necessário)
-- [x] Configurar Swagger/OpenAPI usando Native OpenAPI do Mvp24Hours (`AddMvp24HoursNativeOpenApi`)
-- [x] Remover biblioteca Swashbuckle.AspNetCore (substituída pelo Native OpenAPI)
+- [x] Configurar Swagger/OpenAPI usando Native OpenAPI do .NET 9 diretamente:
+  ```csharp
+  // Registrar serviços OpenAPI
+  builder.Services.AddOpenApi("v1", options =>
+  {
+      options.AddDocumentTransformer((document, context, ct) =>
+      {
+          document.Info = new OpenApiInfo
+          {
+              Title = "DesafioComIA API",
+              Version = "1.0.0",
+              Description = "API para o Desafio com IA"
+          };
+          return System.Threading.Tasks.Task.CompletedTask;
+      });
+  });
+  
+  // No pipeline (após app.Build())
+  app.MapOpenApi("/openapi/{documentName}.json");
+  app.UseSwaggerUI(options =>
+  {
+      options.SwaggerEndpoint("/openapi/v1.json", "DesafioComIA API v1.0.0");
+      options.RoutePrefix = "swagger";
+  });
+  ```
+- [x] Nota: `AddMvp24HoursNativeOpenApi` do Mvp24Hours.WebAPI tinha um bug onde o `MapMvp24HoursNativeOpenApi` não registrava o middleware `UseSwaggerUI`, causando 404 no Swagger UI. Por isso foi substituído pela implementação direta.
+- [x] Pacotes necessários: `Microsoft.AspNetCore.OpenApi` (nativo .NET 9) + `Swashbuckle.AspNetCore` (transitivo via Mvp24Hours.WebAPI) para UI
 
 #### W1.7: Configurar Program.cs - PostgreSQL e DbContext
 - [x] Criar classe `ApplicationDbContext` no projeto Infrastructure herdando de `Mvp24HoursContext`

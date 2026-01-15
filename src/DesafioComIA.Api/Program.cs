@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using FluentValidation;
 using DesafioComIA.Infrastructure.Data;
 using DesafioComIA.Api.Middleware;
 using Mvp24Hours.Extensions;
 using Mvp24Hours.Infrastructure.Cqrs.Extensions;
-using Mvp24Hours.WebAPI.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,14 +27,21 @@ builder.Services.AddCors(options =>
 // Configure Controllers
 builder.Services.AddControllers();
 
-// Configure Native OpenAPI with Mvp24Hours (skip in Testing environment)
+// Configure Native OpenAPI (.NET 9) - skip in Testing environment
 if (!builder.Environment.IsEnvironment("Testing"))
 {
-    builder.Services.AddMvp24HoursNativeOpenApi(options =>
+    builder.Services.AddOpenApi("v1", options =>
     {
-        options.Title = "DesafioComIA API";
-        options.Version = "1.0.0";
-        options.EnableSwaggerUI = true;
+        options.AddDocumentTransformer((document, context, ct) =>
+        {
+            document.Info = new OpenApiInfo
+            {
+                Title = "DesafioComIA API",
+                Version = "1.0.0",
+                Description = "API para o Desafio com IA"
+            };
+            return System.Threading.Tasks.Task.CompletedTask;
+        });
     });
 }
 
@@ -92,7 +99,19 @@ var app = builder.Build();
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
 {
-    app.MapMvp24HoursNativeOpenApi();
+    // Map Native OpenAPI document endpoint
+    app.MapOpenApi("/openapi/{documentName}.json");
+    
+    // Enable Swagger UI
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/openapi/v1.json", "DesafioComIA API v1.0.0");
+        options.RoutePrefix = "swagger";
+        options.EnableDeepLinking();
+        options.EnableFilter();
+        options.EnableTryItOutByDefault();
+        options.DisplayRequestDuration();
+    });
 }
 
 // Use Exception Handling Middleware (must be early in pipeline)
