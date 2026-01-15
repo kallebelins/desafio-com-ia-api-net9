@@ -10,6 +10,7 @@
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="Mvp24Hours.Application" Version="9.0.0" />
     <PackageReference Include="Mvp24Hours.Core" Version="9.0.0" />
+    <PackageReference Include="Mvp24Hours.Infrastructure.Cqrs" Version="9.0.0" />
   </ItemGroup>
 
   <PropertyGroup>

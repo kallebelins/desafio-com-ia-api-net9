@@ -262,35 +262,35 @@ Implementar o cadastro de cliente utilizando o padrão CQRS com Commands.
 ### Microtarefas
 
 #### W3.1: Criar CreateClienteCommand
-- [ ] Criar pasta `Commands/Cliente` no projeto Application
-- [ ] Criar `CreateClienteCommand` implementando `IMediatorCommand<ClienteDto>` do Mvp24Hours
-- [ ] Adicionar propriedades:
+- [x] Criar pasta `Commands/Cliente` no projeto Application
+- [x] Criar `CreateClienteCommand` implementando `IMediatorCommand<ClienteDto>` do Mvp24Hours
+- [x] Adicionar propriedades:
   - `Nome` (string, init)
   - `Cpf` (string, init)
   - `Email` (string, init)
-- [ ] Usar `record` para imutabilidade
+- [x] Usar `record` para imutabilidade
 
 #### W3.2: Criar CreateClienteCommandValidator
-- [ ] Criar `CreateClienteCommandValidator` herdando de `AbstractValidator<CreateClienteCommand>`
-- [ ] Implementar regras de validação:
+- [x] Criar `CreateClienteCommandValidator` herdando de `AbstractValidator<CreateClienteCommand>`
+- [x] Implementar regras de validação:
   - `Nome`: Não vazio, mínimo 3 caracteres, máximo 200 caracteres
   - `Cpf`: Não vazio, usar validação do ValueObject `Cpf` do Mvp24Hours
   - `Email`: Não vazio, usar validação do ValueObject `Email` do Mvp24Hours
-- [ ] Adicionar mensagens de erro personalizadas em português
-- [ ] Usar métodos de validação dos ValueObjects `Cpf` e `Email` do Mvp24Hours
+- [x] Adicionar mensagens de erro personalizadas em português
+- [x] Usar métodos de validação dos ValueObjects `Cpf` e `Email` do Mvp24Hours
 
 #### W3.3: Criar Exceções de Negócio
-- [ ] Criar exceção customizada `ClienteJaExisteException` herdando de `BusinessException` do Mvp24Hours
-- [ ] Criar exceção `ClienteNaoEncontradoException` herdando de `BusinessException` do Mvp24Hours (para uso futuro)
-- [ ] Adicionar mensagens de erro em português
+- [x] Criar exceção customizada `ClienteJaExisteException` herdando de `BusinessException` do Mvp24Hours
+- [x] Criar exceção `ClienteNaoEncontradoException` herdando de `BusinessException` do Mvp24Hours (para uso futuro)
+- [x] Adicionar mensagens de erro em português
 
 #### W3.4: Criar CreateClienteCommandHandler
-- [ ] Criar `CreateClienteCommandHandler` implementando `IMediatorCommandHandler<CreateClienteCommand, ClienteDto>` do Mvp24Hours
-- [ ] Injetar dependências via construtor:
+- [x] Criar `CreateClienteCommandHandler` implementando `IMediatorCommandHandler<CreateClienteCommand, ClienteDto>` do Mvp24Hours
+- [x] Injetar dependências via construtor:
   - `IRepositoryAsync<Cliente>` do Mvp24Hours
   - `IUnitOfWorkAsync` do Mvp24Hours
   - `IMapper`
-- [ ] Implementar método `Handle`:
+- [x] Implementar método `Handle`:
   - Criar instância de `Cpf` ValueObject a partir da string do comando
   - Criar instância de `Email` ValueObject a partir da string do comando
   - Validar se CPF já existe no banco (buscar por `Cpf.Valor`)
@@ -301,34 +301,35 @@ Implementar o cadastro de cliente utilizando o padrão CQRS com Commands.
   - Mapear para DTO e retornar
 
 #### W3.5: Implementar Validação de CPF Duplicado
-- [ ] No `CreateClienteCommandHandler`, antes de criar:
+- [x] No `CreateClienteCommandHandler`, antes de criar:
   - Normalizar CPF do comando usando ValueObject `Cpf` (já normaliza internamente)
   - Buscar cliente existente por `Cpf.Valor` usando repositório
   - Se existir, lançar `ClienteJaExisteException` com mensagem apropriada
 
 #### W3.6: Implementar Validação de Email Duplicado
-- [ ] No `CreateClienteCommandHandler`, antes de criar:
+- [x] No `CreateClienteCommandHandler`, antes de criar:
   - Criar instância de `Email` ValueObject a partir da string do comando (já normaliza internamente)
   - Buscar cliente existente por `Email.Valor` usando repositório
   - Se existir, lançar `ClienteJaExisteException` com mensagem apropriada
 
 #### W3.7: Criar Controller para CreateClienteCommand
-- [ ] Criar `ClientesController` no projeto API
-- [ ] Injetar `IMediator` (do Mvp24Hours) via construtor
-- [ ] Criar endpoint `POST /api/clientes`:
+- [x] Criar `ClientesController` no projeto API
+- [x] Injetar `ISender` (do Mvp24Hours) via construtor
+- [x] Criar endpoint `POST /api/clientes`:
   - Receber `CreateClienteDto` no body
   - Mapear para `CreateClienteCommand`
-  - Enviar comando via `IMediator.SendAsync()`
+  - Enviar comando via `ISender.SendAsync()`
   - Retornar `201 Created` com `ClienteDto` no body
-  - Tratar exceções de validação e negócio
+  - Tratar exceções de validação e negócio (via middleware)
 
 #### W3.8: Configurar Swagger para Endpoint de Create
-- [ ] Adicionar atributos `[ApiController]` e `[Route("api/[controller]")]` no controller
-- [ ] Adicionar `[ProducesResponseType]` para documentação Swagger:
+- [x] Adicionar atributos `[ApiController]` e `[Route("api/[controller]")]` no controller
+- [x] Adicionar `[ProducesResponseType]` para documentação Swagger:
   - `201 Created` com `ClienteDto`
   - `400 Bad Request` para validação
   - `409 Conflict` para CPF/Email duplicado
   - `500 Internal Server Error`
+- [x] Atualizar middleware para tratar `ClienteJaExisteException` como 409 Conflict
 
 #### W3.9: Testes de Integração - Cadastro Válido
 - [ ] Criar teste de integração para cadastro com dados válidos

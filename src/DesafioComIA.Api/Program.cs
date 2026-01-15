@@ -24,6 +24,9 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Configure Controllers
+builder.Services.AddControllers();
+
 // Configure OpenAPI/Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -42,10 +45,14 @@ builder.Services.AddMvp24HoursRepositoryAsync(options =>
     options.TransactionIsolationLevel = System.Transactions.IsolationLevel.ReadCommitted;
 });
 
+// Load Application assembly for handlers, validators and mappings
+var applicationAssembly = System.Reflection.Assembly.Load("DesafioComIA.Application");
+
 // Register CQRS Mediator
 builder.Services.AddMvpMediator(options =>
 {
     options.RegisterHandlersFromAssemblyContaining<Program>();
+    options.RegisterHandlersFromAssembly(applicationAssembly);
     options.RegisterLoggingBehavior = true;
     options.RegisterPerformanceBehavior = true;
     options.RegisterUnhandledExceptionBehavior = true;
@@ -57,10 +64,10 @@ builder.Services.AddMvpMediator(options =>
 // Note: FluentValidation 12.x removed auto-validation methods
 // Validation is handled by Mvp24Hours Mediator ValidationBehavior
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddValidatorsFromAssembly(applicationAssembly);
 
 // Register AutoMapper using Mvp24Hours MapService
 // Include Application assembly where DTOs and mappings will be defined
-var applicationAssembly = System.Reflection.Assembly.Load("DesafioComIA.Application");
 builder.Services.AddMvp24HoursMapService(applicationAssembly);
 
 // Configure Health Checks
@@ -91,6 +98,9 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 app.UseCors();
+
+// Map Controllers
+app.MapControllers();
 
 // Map Health Check endpoint
 app.MapHealthChecks("/health");

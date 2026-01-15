@@ -5,6 +5,7 @@ using FluentValidation;
 using Mvp24HoursValidationException = Mvp24Hours.Core.Exceptions.ValidationException;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using DesafioComIA.Application.Exceptions;
 
 namespace DesafioComIA.Api.Middleware;
 
@@ -47,6 +48,13 @@ public class ExceptionHandlingMiddleware
 
         switch (exception)
         {
+            case ClienteJaExisteException clienteJaExisteEx:
+                statusCode = HttpStatusCode.Conflict;
+                problemDetails.Status = (int)statusCode;
+                problemDetails.Title = "Cliente já existe";
+                problemDetails.Detail = clienteJaExisteEx.Message;
+                break;
+
             case BusinessException businessEx:
                 statusCode = HttpStatusCode.BadRequest;
                 problemDetails.Status = (int)statusCode;
