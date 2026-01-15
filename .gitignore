@@ -408,6 +408,7 @@ appsettings.Production.json
 
 # Docker
 docker-compose.override.yml
+data/
 
 # Environment variables
 .env

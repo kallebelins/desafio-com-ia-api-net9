@@ -140,9 +140,9 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
 - [x] Mapear exceções de negócio para ProblemDetails
 
 #### W1.13: Criar docker-compose.yml para ferramentas do projeto
-- [ ] Adicionar arquivo `docker-compose.yml` na raiz da solution contendo apenas os serviços utilizados pelo projeto:
+- [x] Adicionar arquivo `docker-compose.yml` na raiz da solution contendo apenas os serviços utilizados pelo projeto:
   - `postgresql` com imagem oficial, volumes para persistência e variáveis de ambiente adequadas (POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD).
-- [ ] Exemplo básico de serviço PostgreSQL:
+- [x] Exemplo básico de serviço PostgreSQL:
   ```yaml
   version: '3.8'
   services:
@@ -151,19 +151,26 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
       container_name: desafio_postgres
       restart: always
       environment:
-        POSTGRES_DB: desafio_db
-        POSTGRES_USER: desafio_user
-        POSTGRES_PASSWORD: desafio_password
+        POSTGRES_DB: DesafioComIA
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
       ports:
         - "5432:5432"
       volumes:
         - ./data/postgres:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U postgres"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
   ```
-- [ ] (Opcional) Documentar como subir e derrubar o ambiente:
+- [x] (Opcional) Documentar como subir e derrubar o ambiente:
   ```sh
   docker-compose up -d
   docker-compose down
   ```
+- [x] Adicionar pasta `data/` ao `.gitignore` para ignorar dados do PostgreSQL
+- [x] Atualizar README.md com instruções de uso do Docker Compose
 
 
 ---

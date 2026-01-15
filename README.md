@@ -106,6 +106,26 @@ Este projeto possui documentação detalhada das tarefas:
 
 ### Configuração do Banco de Dados
 
+#### Opção 1: Usando Docker Compose (Recomendado)
+
+1. Suba o container PostgreSQL usando Docker Compose:
+```bash
+docker-compose up -d
+```
+
+2. O banco de dados será criado automaticamente com as seguintes configurações:
+   - **Database**: DesafioComIA
+   - **User**: postgres
+   - **Password**: postgres
+   - **Port**: 5432
+
+3. Para parar o container:
+```bash
+docker-compose down
+```
+
+#### Opção 2: PostgreSQL Local
+
 1. Crie um banco de dados PostgreSQL:
 ```sql
 CREATE DATABASE DesafioComIA;
