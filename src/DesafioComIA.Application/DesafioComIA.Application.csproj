@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\DesafioComIA.Infrastructure\DesafioComIA.Infrastructure.csproj" />
@@ -6,6 +6,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="Mvp24Hours.Application" Version="9.0.0" />
     <PackageReference Include="Mvp24Hours.Core" Version="9.0.0" />
   </ItemGroup>

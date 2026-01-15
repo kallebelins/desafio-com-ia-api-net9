@@ -45,14 +45,14 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
 - [x] Instalar `Microsoft.EntityFrameworkCore.Tools` (versão 9.*) no projeto Infrastructure
 
 #### W1.4: Instalar Pacotes NuGet - Validação e Mapeamento
-- [ ] Instalar `FluentValidation` (versão 11.*) no projeto Application
-- [ ] Instalar `FluentValidation.AspNetCore` (versão 11.*) no projeto API
-- [ ] Instalar `AutoMapper` (versão 12.*) no projeto Application
-- [ ] Instalar `AutoMapper.Extensions.Microsoft.DependencyInjection` no projeto Application
+- [x] Instalar `FluentValidation` (versão 12.*) no projeto Application
+- [x] Instalar `FluentValidation.DependencyInjectionExtensions` (versão 12.*) no projeto API (substitui FluentValidation.AspNetCore que foi deprecado)
+- [x] Instalar `AutoMapper` (versão 13.*) no projeto Application
+- [x] ~~Instalar `AutoMapper.Extensions.Microsoft.DependencyInjection`~~ (Não necessário - integrado no AutoMapper 13.0+)
 
 #### W1.5: Configurar appsettings.json
-- [ ] Criar arquivo `appsettings.json` no projeto API
-- [ ] Adicionar ConnectionString para PostgreSQL:
+- [x] Criar arquivo `appsettings.json` no projeto API
+- [x] Adicionar ConnectionString para PostgreSQL:
   ```json
   {
     "ConnectionStrings": {
@@ -60,27 +60,27 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
     }
   }
   ```
-- [ ] Criar `appsettings.Development.json` com configurações de desenvolvimento
-- [ ] Criar `appsettings.Production.json` com configurações de produção
+- [x] Criar `appsettings.Development.json` com configurações de desenvolvimento
+- [x] Criar `appsettings.Production.json` com configurações de produção
 
 #### W1.6: Configurar Program.cs - Base
-- [ ] Configurar builder do WebApplication
-- [ ] Configurar logging básico
-- [ ] Configurar CORS (se necessário)
-- [ ] Configurar Swagger/OpenAPI
+- [x] Configurar builder do WebApplication
+- [x] Configurar logging básico
+- [x] Configurar CORS (se necessário)
+- [x] Configurar Swagger/OpenAPI
 
 #### W1.7: Configurar Program.cs - PostgreSQL e DbContext
-- [ ] Criar classe `ApplicationDbContext` no projeto Infrastructure herdando de `Mvp24HoursContext`
-- [ ] Configurar DbContext no Program.cs:
+- [x] Criar classe `ApplicationDbContext` no projeto Infrastructure herdando de `Mvp24HoursContext`
+- [x] Configurar DbContext no Program.cs:
   ```csharp
   builder.Services.AddDbContext<ApplicationDbContext>(options =>
       options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
   ```
-- [ ] Registrar Mvp24Hours DbContext:
+- [x] Registrar Mvp24Hours DbContext:
   ```csharp
   builder.Services.AddMvp24HoursDbContext<ApplicationDbContext>();
   ```
-- [ ] Registrar Repository Async:
+- [x] Registrar Repository Async:
   ```csharp
   builder.Services.AddMvp24HoursRepositoryAsync(options =>
   {
@@ -90,7 +90,7 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
   ```
 
 #### W1.8: Configurar Program.cs - CQRS Mediator
-- [ ] Registrar Mediator:
+- [x] Registrar Mediator:
   ```csharp
   builder.Services.AddMvpMediator(options =>
   {
@@ -104,32 +104,40 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
   ```
 
 #### W1.9: Configurar Program.cs - Validação
-- [ ] Registrar FluentValidation:
+- [x] Registrar FluentValidation:
   ```csharp
   builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-  builder.Services.AddFluentValidationAutoValidation();
-  builder.Services.AddFluentValidationClientsideAdapters();
   ```
+  Nota: FluentValidation 12.x removeu métodos de auto-validação. A validação é feita automaticamente pelo ValidationBehavior do Mvp24Hours Mediator.
 
 #### W1.10: Configurar Program.cs - AutoMapper
-- [ ] Registrar AutoMapper:
+- [x] Registrar AutoMapper:
   ```csharp
-  builder.Services.AddAutoMapper(typeof(Program).Assembly);
+  // Usando Mvp24Hours MapService (recomendado)
+  var applicationAssembly = System.Reflection.Assembly.Load("DesafioComIA.Application");
+  builder.Services.AddMvp24HoursMapService(
+      typeof(Program).Assembly,
+      applicationAssembly
+  );
   ```
+  Nota: Mvp24Hours fornece suporte integrado ao AutoMapper através do método `AddMvp24HoursMapService`.
 
 #### W1.11: Configurar Health Checks
-- [ ] Adicionar Health Checks para PostgreSQL:
+- [x] Adicionar Health Checks para PostgreSQL:
   ```csharp
   builder.Services.AddHealthChecks()
-      .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection"), name: "postgresql");
+      .AddNpgSql(
+          builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty,
+          name: "postgresql",
+          failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded);
   ```
-- [ ] Configurar endpoint de health check: `/health`
+- [x] Configurar endpoint de health check: `/health`
 
 #### W1.12: Configurar Exception Handling
-- [ ] Criar middleware de tratamento de exceções
-- [ ] Configurar ProblemDetails para respostas de erro
-- [ ] Mapear exceções de validação para ProblemDetails
-- [ ] Mapear exceções de negócio para ProblemDetails
+- [x] Criar middleware de tratamento de exceções
+- [x] Configurar ProblemDetails para respostas de erro
+- [x] Mapear exceções de validação para ProblemDetails
+- [x] Mapear exceções de negócio para ProblemDetails
 
 ---
 
