@@ -139,6 +139,33 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
 - [x] Mapear exceções de validação para ProblemDetails
 - [x] Mapear exceções de negócio para ProblemDetails
 
+#### W1.13: Criar docker-compose.yml para ferramentas do projeto
+- [ ] Adicionar arquivo `docker-compose.yml` na raiz da solution contendo apenas os serviços utilizados pelo projeto:
+  - `postgresql` com imagem oficial, volumes para persistência e variáveis de ambiente adequadas (POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD).
+- [ ] Exemplo básico de serviço PostgreSQL:
+  ```yaml
+  version: '3.8'
+  services:
+    postgres:
+      image: postgres:15
+      container_name: desafio_postgres
+      restart: always
+      environment:
+        POSTGRES_DB: desafio_db
+        POSTGRES_USER: desafio_user
+        POSTGRES_PASSWORD: desafio_password
+      ports:
+        - "5432:5432"
+      volumes:
+        - ./data/postgres:/var/lib/postgresql/data
+  ```
+- [ ] (Opcional) Documentar como subir e derrubar o ambiente:
+  ```sh
+  docker-compose up -d
+  docker-compose down
+  ```
+
+
 ---
 
 ## 🌊 Wave 2: Entidade e Contexto de Dados
@@ -149,18 +176,18 @@ Criar a entidade Cliente, configurar o DbContext e preparar as migrations do ban
 ### Microtarefas
 
 #### W2.1: Criar Entidade Cliente
-- [ ] Criar classe `Cliente` no projeto Domain
-- [ ] Herdar de `EntityBase<Guid>` do Mvp24Hours
-- [ ] Implementar propriedades:
+- [x] Criar classe `Cliente` no projeto Domain
+- [x] Herdar de `EntityBase<Guid>` do Mvp24Hours
+- [x] Implementar propriedades:
   - `Id` (Guid) - herdado de EntityBase
   - `Nome` (string, obrigatório, 3-200 caracteres)
   - `Cpf` (ValueObject Cpf do Mvp24Hours, obrigatório, único)
   - `Email` (ValueObject Email do Mvp24Hours, obrigatório, único)
   - `CreatedAt` (DateTime) - herdado de EntityBase
   - `ModifiedAt` (DateTime?) - herdado de EntityBase
-- [ ] Adicionar construtor padrão
-- [ ] Adicionar construtor com parâmetros principais
-- [ ] Usar ValueObjects `Cpf` e `Email` já existentes do Mvp24Hours
+- [x] Adicionar construtor padrão
+- [x] Adicionar construtor com parâmetros principais
+- [x] Usar ValueObjects `Cpf` e `Email` já existentes do Mvp24Hours
 
 #### W2.2: Configurar Entity no DbContext
 - [ ] Abrir `ApplicationDbContext` no projeto Infrastructure
