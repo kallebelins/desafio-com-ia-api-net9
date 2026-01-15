@@ -33,11 +33,11 @@ Configurar a estrutura base do projeto, dependências e infraestrutura necessár
 - [x] Adicione .gitignore
 
 #### W1.2: Instalar Pacotes NuGet - Core
-- [ ] Instalar `Mvp24Hours.Core` (versão 9.*) em todos os projetos necessários
-- [ ] Instalar `Mvp24Hours.Application` (versão 9.*) no projeto Application
-- [ ] Instalar `Mvp24Hours.Infrastructure.Data.EFCore` (versão 9.*) no projeto Infrastructure
-- [ ] Instalar `Mvp24Hours.Infrastructure.Cqrs` (versão 9.*) no projeto Application
-- [ ] Instalar `Mvp24Hours.WebAPI` (versão 9.*) no projeto API
+- [x] Instalar `Mvp24Hours.Core` (versão 9.*) em todos os projetos necessários
+- [x] Instalar `Mvp24Hours.Application` (versão 9.*) no projeto Application
+- [x] Instalar `Mvp24Hours.Infrastructure.Data.EFCore` (versão 9.*) no projeto Infrastructure
+- [x] Instalar `Mvp24Hours.Infrastructure.Cqrs` (versão 9.*) no projeto Application
+- [x] Instalar `Mvp24Hours.WebAPI` (versão 9.*) no projeto API
 
 #### W1.3: Instalar Pacotes NuGet - PostgreSQL
 - [ ] Instalar `Npgsql.EntityFrameworkCore.PostgreSQL` (versão 9.*) no projeto Infrastructure
