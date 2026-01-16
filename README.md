@@ -58,6 +58,10 @@ src/
 - **FluentValidation**: Validação de dados
 - **AutoMapper**: Mapeamento de objetos
 - **Swagger/OpenAPI**: Documentação da API nativa do .NET 9
+- **OpenTelemetry**: Telemetria e observabilidade
+- **Jaeger**: Visualização de traces distribuídos
+- **Prometheus**: Coleta e armazenamento de métricas
+- **Grafana**: Dashboards e visualização de métricas
 
 ## 📋 Funcionalidades
 
@@ -104,6 +108,14 @@ src/
 - Invalidação automática em operações de escrita
 - TTL configurável por tipo de operação
 - Endpoint de diagnóstico de cache (Development)
+
+### TAR-009: Observabilidade com OpenTelemetry
+- Tracing distribuído com Jaeger
+- Métricas com Prometheus e Grafana
+- Logging estruturado com Correlation ID
+- Métricas de negócio (clientes criados, atualizados, removidos, buscas)
+- Métricas de cache (hits, misses, invalidações)
+- Mascaramento de dados sensíveis (CPF, Email)
 
 ## 📁 Documentação de Tarefas
 
@@ -227,6 +239,78 @@ O cache pode ser configurado no `appsettings.json`:
 - `GET /api/cache/stats` - Estatísticas do cache
 - `DELETE /api/cache/clear` - Limpa todo o cache de clientes
 - `DELETE /api/cache/key/{key}` - Remove chave específica
+
+### Configuração da Observabilidade
+
+O projeto inclui um stack de observabilidade completo:
+
+#### Ferramentas Disponíveis
+
+| Ferramenta | URL | Descrição |
+|------------|-----|-----------|
+| **Jaeger UI** | http://localhost:16686 | Visualização de traces distribuídos |
+| **Prometheus** | http://localhost:9090 | Consulta de métricas |
+| **Grafana** | http://localhost:3000 | Dashboards de métricas (admin/admin) |
+| **Métricas da API** | http://localhost:5000/metrics | Endpoint Prometheus |
+
+#### Subindo a Stack de Observabilidade
+
+```bash
+# Suba todos os serviços (PostgreSQL, Redis, Jaeger, Prometheus, Grafana)
+docker-compose up -d
+
+# Verifique o status
+docker-compose ps
+```
+
+#### Métricas Customizadas
+
+**Métricas de Clientes:**
+- `clientes.criados` - Total de clientes criados
+- `clientes.atualizados` - Total de clientes atualizados
+- `clientes.removidos` - Total de clientes removidos
+- `clientes.buscas` - Total de buscas realizadas
+- `clientes.processamento.tempo` - Tempo de processamento das operações
+
+**Métricas de Cache:**
+- `cache.hits` - Total de cache hits
+- `cache.misses` - Total de cache misses
+- `cache.invalidations` - Total de invalidações de cache
+
+#### Configuração no appsettings.json
+
+```json
+{
+  "OpenTelemetry": {
+    "ServiceName": "DesafioComIA.Api",
+    "ServiceVersion": "1.0.0",
+    "EnableConsoleExporter": true,
+    "Otlp": {
+      "Endpoint": "http://localhost:4317",
+      "Protocol": "Grpc"
+    },
+    "Tracing": {
+      "Enabled": true,
+      "SamplingProbability": 1.0
+    },
+    "Metrics": {
+      "Enabled": true,
+      "PrometheusEndpoint": "/metrics"
+    },
+    "Logging": {
+      "Enabled": true,
+      "IncludeFormattedMessage": true,
+      "IncludeScopes": true
+    }
+  }
+}
+```
+
+#### Mascaramento de Dados Sensíveis
+
+Os dados sensíveis são automaticamente mascarados nos traces e logs:
+- **CPF**: `123.456.789-00` → `***.456.789-**`
+- **Email**: `user@example.com` → `u***@example.com`
 
 ## 🧪 Testes
 

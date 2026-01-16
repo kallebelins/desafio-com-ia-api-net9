@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Mvp24Hours.Core.Contract.Data;
@@ -5,6 +6,7 @@ using Mvp24Hours.Core.ValueObjects;
 using Mvp24Hours.Infrastructure.Cqrs.Abstractions;
 using DesafioComIA.Application.DTOs;
 using DesafioComIA.Application.Exceptions;
+using DesafioComIA.Application.Telemetry;
 using DesafioComIA.Infrastructure.Services.Cache;
 using ClienteEntity = DesafioComIA.Domain.Entities.Cliente;
 
@@ -20,80 +22,122 @@ public class PatchClienteCommandHandler : IMediatorCommandHandler<PatchClienteCo
     private readonly IMapper _mapper;
     private readonly ICacheService _cacheService;
     private readonly ILogger<PatchClienteCommandHandler> _logger;
+    private readonly ClienteMetrics _metrics;
 
     public PatchClienteCommandHandler(
         IRepositoryAsync<ClienteEntity> repository,
         IUnitOfWorkAsync unitOfWork,
         IMapper mapper,
         ICacheService cacheService,
-        ILogger<PatchClienteCommandHandler> logger)
+        ILogger<PatchClienteCommandHandler> logger,
+        ClienteMetrics metrics)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _cacheService = cacheService;
         _logger = logger;
+        _metrics = metrics;
     }
 
     public async Task<ClienteDto> Handle(PatchClienteCommand request, CancellationToken cancellationToken)
     {
-        // Buscar cliente existente
-        var cliente = await _repository.GetByIdAsync(request.Id, cancellationToken);
+        using var activity = DiagnosticsConfig.ActivitySource.StartActivity("PatchCliente");
+        activity?.SetClienteId(request.Id);
+        activity?.SetTag("patch.campos_atualizados", GetCamposAtualizados(request));
 
-        if (cliente is null)
+        var stopwatch = Stopwatch.StartNew();
+        var sucesso = false;
+
+        try
         {
-            throw new ClienteNaoEncontradoException(
-                $"Cliente com ID '{request.Id}' não foi encontrado.",
-                new Dictionary<string, object> { { "ClienteId", request.Id } });
-        }
+            activity?.AddEvent(new ActivityEvent("BuscandoCliente"));
 
-        // Atualizar Nome se informado
-        if (!string.IsNullOrWhiteSpace(request.Nome))
-        {
-            cliente.AtualizarNome(request.Nome);
-        }
+            // Buscar cliente existente
+            var cliente = await _repository.GetByIdAsync(request.Id, cancellationToken);
 
-        // Atualizar CPF se informado
-        if (!string.IsNullOrWhiteSpace(request.Cpf))
-        {
-            var cpf = Cpf.Create(request.Cpf);
-
-            // Validar se novo CPF já existe em outro cliente
-            var clienteComCpf = await _repository.GetByAsync(c => c.Cpf == cpf && c.Id != request.Id, cancellationToken);
-            if (clienteComCpf?.Any() == true)
+            if (cliente is null)
             {
-                throw new ClienteJaExisteException($"Já existe outro cliente cadastrado com o CPF {cpf.Formatted}.");
+                throw new ClienteNaoEncontradoException(
+                    $"Cliente com ID '{request.Id}' não foi encontrado.",
+                    new Dictionary<string, object> { { "ClienteId", request.Id } });
             }
 
-            cliente.AtualizarCpf(cpf);
-        }
+            activity?.AddEvent(new ActivityEvent("AplicandoPatch"));
 
-        // Atualizar Email se informado
-        if (!string.IsNullOrWhiteSpace(request.Email))
-        {
-            var email = Email.Create(request.Email);
-
-            // Validar se novo Email já existe em outro cliente
-            var clienteComEmail = await _repository.GetByAsync(c => c.Email == email && c.Id != request.Id, cancellationToken);
-            if (clienteComEmail?.Any() == true)
+            // Atualizar Nome se informado
+            if (!string.IsNullOrWhiteSpace(request.Nome))
             {
-                throw new ClienteJaExisteException($"Já existe outro cliente cadastrado com o e-mail {email.Value}.");
+                cliente.AtualizarNome(request.Nome);
             }
 
-            cliente.AtualizarEmail(email);
+            // Atualizar CPF se informado
+            if (!string.IsNullOrWhiteSpace(request.Cpf))
+            {
+                var cpf = Cpf.Create(request.Cpf);
+
+                // Validar se novo CPF já existe em outro cliente
+                var clienteComCpf = await _repository.GetByAsync(c => c.Cpf == cpf && c.Id != request.Id, cancellationToken);
+                if (clienteComCpf?.Any() == true)
+                {
+                    throw new ClienteJaExisteException($"Já existe outro cliente cadastrado com o CPF {cpf.Formatted}.");
+                }
+
+                cliente.AtualizarCpf(cpf);
+            }
+
+            // Atualizar Email se informado
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                var email = Email.Create(request.Email);
+
+                // Validar se novo Email já existe em outro cliente
+                var clienteComEmail = await _repository.GetByAsync(c => c.Email == email && c.Id != request.Id, cancellationToken);
+                if (clienteComEmail?.Any() == true)
+                {
+                    throw new ClienteJaExisteException($"Já existe outro cliente cadastrado com o e-mail {email.Value}.");
+                }
+
+                cliente.AtualizarEmail(email);
+            }
+
+            // Atualizar no repositório
+            await _repository.ModifyAsync(cliente, cancellationToken);
+
+            // Salvar mudanças com UnitOfWork
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            activity?.AddEvent(new ActivityEvent("ClienteAtualizado"));
+
+            // Invalidar cache
+            await InvalidateCacheAsync(request.Id, cancellationToken);
+
+            sucesso = true;
+            activity?.SetSuccess("Cliente atualizado parcialmente com sucesso");
+            _metrics.ClienteAtualizado();
+
+            // Mapear para DTO e retornar
+            return _mapper.Map<ClienteDto>(cliente);
         }
+        catch (Exception ex)
+        {
+            activity?.SetError(ex);
+            throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            _metrics.RegistrarTempoProcessamento(stopwatch.ElapsedMilliseconds, "PatchCliente", sucesso);
+        }
+    }
 
-        // Atualizar no repositório
-        await _repository.ModifyAsync(cliente, cancellationToken);
-
-        // Salvar mudanças com UnitOfWork
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        // Invalidar cache
-        await InvalidateCacheAsync(request.Id, cancellationToken);
-
-        // Mapear para DTO e retornar
-        return _mapper.Map<ClienteDto>(cliente);
+    private static string GetCamposAtualizados(PatchClienteCommand request)
+    {
+        var campos = new List<string>();
+        if (!string.IsNullOrWhiteSpace(request.Nome)) campos.Add("Nome");
+        if (!string.IsNullOrWhiteSpace(request.Cpf)) campos.Add("Cpf");
+        if (!string.IsNullOrWhiteSpace(request.Email)) campos.Add("Email");
+        return string.Join(",", campos);
     }
 
     /// <summary>

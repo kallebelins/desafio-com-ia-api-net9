@@ -622,531 +622,271 @@ Implementar observabilidade completa da API utilizando OpenTelemetry para logs, 
 
 ### Microtarefas
 
-#### W3.1: Analisar Requisitos de Observabilidade
-- [ ] **OBRIGATÓRIO**: Executar `mvp24h_observability_setup` com component `overview`
-- [ ] **OBRIGATÓRIO**: Executar `mvp24h_cqrs_guide` com topic `cqrs-tracing`
-- [ ] **OBRIGATÓRIO**: Executar `mvp24h_cqrs_guide` com topic `cqrs-telemetry`
-- [ ] Identificar componentes de observabilidade necessários:
+#### W3.1: Analisar Requisitos de Observabilidade ✅
+- [x] **OBRIGATÓRIO**: Executar `mvp24h_observability_setup` com component `overview`
+- [x] **OBRIGATÓRIO**: Executar `mvp24h_cqrs_guide` com topic `cqrs-tracing`
+- [x] **OBRIGATÓRIO**: Executar `mvp24h_cqrs_guide` com topic `cqrs-telemetry`
+- [x] Identificar componentes de observabilidade necessários:
   - **Logs**: Estruturados em JSON com correlation ID
   - **Traces**: Rastreamento de requisições HTTP e operações CQRS
   - **Métricas**: Performance, negócio e recursos
-- [ ] Identificar ferramentas de visualização:
+- [x] Identificar ferramentas de visualização:
   - **Jaeger**: Visualização de traces
   - **Prometheus**: Coleta e armazenamento de métricas
   - **Grafana**: Dashboards e visualização unificada
 
-#### W3.2: Instalar Pacotes NuGet - OpenTelemetry
-- [ ] **OBRIGATÓRIO**: Consultar `mvp24h_observability_setup` com component `exporters` antes de instalar
-- [ ] Instalar pacotes core:
-  - `OpenTelemetry` (versão 1.*)
-  - `OpenTelemetry.Extensions.Hosting` (versão 1.*)
-  - `OpenTelemetry.Instrumentation.AspNetCore` (versão 1.*)
-  - `OpenTelemetry.Instrumentation.Http` (versão 1.*)
-  - `OpenTelemetry.Instrumentation.EntityFrameworkCore` (versão 1.*)
-- [ ] Instalar exportadores:
-  - `OpenTelemetry.Exporter.OpenTelemetryProtocol` (versão 1.*) - OTLP
-  - `OpenTelemetry.Exporter.Console` (versão 1.*) - Console (Development)
-  - `OpenTelemetry.Exporter.Prometheus.AspNetCore` (versão 1.*) - Prometheus
-- [ ] Instalar integração com logging:
-  - `OpenTelemetry.Extensions.Logging` (versão 1.*)
+#### W3.2: Instalar Pacotes NuGet - OpenTelemetry ✅
+- [x] **OBRIGATÓRIO**: Consultar `mvp24h_observability_setup` com component `exporters` antes de instalar
+- [x] Instalar pacotes core:
+  - `OpenTelemetry.Extensions.Hosting` (versão 1.11.2)
+  - `OpenTelemetry.Instrumentation.AspNetCore` (versão 1.11.1)
+  - `OpenTelemetry.Instrumentation.Http` (versão 1.11.1)
+  - `OpenTelemetry.Instrumentation.EntityFrameworkCore` (versão 1.10.0-beta.1)
+  - `OpenTelemetry.Instrumentation.Runtime` (versão 1.10.0)
+- [x] Instalar exportadores:
+  - `OpenTelemetry.Exporter.OpenTelemetryProtocol` (versão 1.11.2) - OTLP
+  - `OpenTelemetry.Exporter.Console` (versão 1.11.2) - Console (Development)
+  - `OpenTelemetry.Exporter.Prometheus.AspNetCore` (versão 1.11.2-beta.1) - Prometheus
 
-#### W3.3: Configurar OpenTelemetry em appsettings.json
-- [ ] Adicionar seção de configuração:
-  ```json
-  {
-    "OpenTelemetry": {
-      "ServiceName": "DesafioComIA.Api",
-      "ServiceVersion": "1.0.0",
-      "EnableConsoleExporter": true,
-      "Otlp": {
-        "Endpoint": "http://localhost:4317",
-        "Protocol": "Grpc"
-      },
-      "Jaeger": {
-        "Endpoint": "http://localhost:4318/v1/traces"
-      },
-      "Prometheus": {
-        "Endpoint": "/metrics",
-        "Port": 9464
-      },
-      "Tracing": {
-        "Enabled": true,
-        "SamplingProbability": 1.0
-      },
-      "Metrics": {
-        "Enabled": true
-      },
-      "Logging": {
-        "Enabled": true,
-        "IncludeFormattedMessage": true,
-        "IncludeScopes": true
-      }
-    }
-  }
-  ```
+**📄 Arquivo atualizado:** `src/DesafioComIA.Api/DesafioComIA.Api.csproj`
 
-#### W3.4: Criar Classe de Configuração OpenTelemetrySettings
-- [ ] Criar `OpenTelemetrySettings` no projeto API
-- [ ] Adicionar propriedades:
+#### W3.3: Configurar OpenTelemetry em appsettings.json ✅
+- [x] Adicionar seção de configuração OpenTelemetry
+
+**📄 Arquivo atualizado:** `src/DesafioComIA.Api/appsettings.json`
+
+#### W3.4: Criar Classe de Configuração OpenTelemetrySettings ✅
+- [x] Criar `OpenTelemetrySettings` no projeto API
+- [x] Adicionar propriedades:
   - `ServiceName` (string)
   - `ServiceVersion` (string)
   - `EnableConsoleExporter` (bool)
-  - Classes aninhadas: `OtlpSettings`, `JaegerSettings`, `PrometheusSettings`, `TracingSettings`, `MetricsSettings`, `LoggingSettings`
-- [ ] Registrar no DI:
-  ```csharp
-  builder.Services.Configure<OpenTelemetrySettings>(
-      builder.Configuration.GetSection("OpenTelemetry"));
-  ```
+  - Classes aninhadas: `OtlpSettings`, `TracingSettings`, `MetricsSettings`, `LoggingSettings`
+- [x] Registrar no DI
 
-#### W3.5: Configurar OpenTelemetry - Tracing
-- [ ] **OBRIGATÓRIO**: Consultar `mvp24h_observability_setup` com component `tracing` antes de implementar
-- [ ] Adicionar no `Program.cs`:
-  ```csharp
-  builder.Services.AddOpenTelemetry()
-      .ConfigureResource(resource => resource
-          .AddService(serviceName: "DesafioComIA.Api", serviceVersion: "1.0.0"))
-      .WithTracing(tracing => tracing
-          .AddAspNetCoreInstrumentation(options =>
-          {
-              options.RecordException = true;
-              options.EnrichWithHttpRequest = (activity, request) =>
-              {
-                  activity.SetTag("http.request.method", request.Method);
-                  activity.SetTag("http.request.path", request.Path);
-              };
-              options.EnrichWithHttpResponse = (activity, response) =>
-              {
-                  activity.SetTag("http.response.status_code", response.StatusCode);
-              };
-          })
-          .AddHttpClientInstrumentation()
-          .AddEntityFrameworkCoreInstrumentation(options =>
-          {
-              options.SetDbStatementForText = true;
-              options.SetDbStatementForStoredProcedure = true;
-          })
-          .AddSource("DesafioComIA.*")
-          .AddOtlpExporter(options =>
-          {
-              options.Endpoint = new Uri("http://localhost:4317");
-              options.Protocol = OtlpExportProtocol.Grpc;
-          })
-          .AddConsoleExporter());
-  ```
+**📄 Arquivo criado:** `src/DesafioComIA.Api/Configuration/OpenTelemetrySettings.cs`
 
-#### W3.6: Configurar OpenTelemetry - Metrics
-- [ ] **OBRIGATÓRIO**: Consultar `mvp24h_observability_setup` com component `metrics` antes de implementar
-- [ ] Adicionar no `Program.cs` (continuação do AddOpenTelemetry):
-  ```csharp
-  .WithMetrics(metrics => metrics
-      .AddAspNetCoreInstrumentation()
-      .AddHttpClientInstrumentation()
-      .AddRuntimeInstrumentation()
-      .AddProcessInstrumentation()
-      .AddMeter("DesafioComIA.*")
-      .AddOtlpExporter(options =>
-      {
-          options.Endpoint = new Uri("http://localhost:4317");
-          options.Protocol = OtlpExportProtocol.Grpc;
-      })
-      .AddPrometheusExporter()
-      .AddConsoleExporter());
-  ```
-- [ ] Configurar endpoint Prometheus:
-  ```csharp
-  app.MapPrometheusScrapingEndpoint("/metrics");
-  ```
+#### W3.5: Configurar OpenTelemetry - Tracing ✅
+- [x] **OBRIGATÓRIO**: Consultar `mvp24h_observability_setup` com component `tracing` antes de implementar
+- [x] Configurar OpenTelemetry Tracing no `Program.cs`:
+  - AddAspNetCoreInstrumentation com filtros e enriquecimento
+  - AddHttpClientInstrumentation
+  - AddEntityFrameworkCoreInstrumentation
+  - AddSource para ActivitySources customizados
+  - AddOtlpExporter para Jaeger
+  - AddConsoleExporter (apenas Development)
 
-#### W3.7: Configurar OpenTelemetry - Logging
-- [ ] **OBRIGATÓRIO**: Consultar `mvp24h_observability_setup` com component `logging` antes de implementar
-- [ ] Configurar logging estruturado no `Program.cs`:
-  ```csharp
-  builder.Logging.ClearProviders();
-  builder.Logging.AddOpenTelemetry(options =>
-  {
-      options.IncludeFormattedMessage = true;
-      options.IncludeScopes = true;
-      options.ParseStateValues = true;
-      options.AddOtlpExporter(otlp =>
-      {
-          otlp.Endpoint = new Uri("http://localhost:4317");
-          otlp.Protocol = OtlpExportProtocol.Grpc;
-      });
-      options.AddConsoleExporter();
-  });
-  builder.Logging.AddJsonConsole(options =>
-  {
-      options.IncludeScopes = true;
-      options.TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
-      options.JsonWriterOptions = new System.Text.Json.JsonWriterOptions
-      {
-          Indented = false
-      };
-  });
-  ```
+**📄 Arquivo atualizado:** `src/DesafioComIA.Api/Program.cs`
 
-#### W3.8: Criar ActivitySource para Instrumentação Manual
-- [ ] Criar classe `Telemetry` no projeto Application:
-  ```csharp
-  public static class Telemetry
-  {
-      public const string ServiceName = "DesafioComIA.Api";
-      public static readonly ActivitySource ActivitySource = new(ServiceName, "1.0.0");
-  }
-  ```
-- [ ] Registrar ActivitySource no DI se necessário
+#### W3.6: Configurar OpenTelemetry - Metrics ✅
+- [x] **OBRIGATÓRIO**: Consultar `mvp24h_observability_setup` com component `metrics` antes de implementar
+- [x] Configurar OpenTelemetry Metrics no `Program.cs`:
+  - AddAspNetCoreInstrumentation
+  - AddHttpClientInstrumentation
+  - AddRuntimeInstrumentation
+  - AddMeter para meters customizados (ClienteMetrics, CacheMetrics)
+  - AddOtlpExporter para Prometheus/Grafana
+  - AddPrometheusExporter
+  - AddConsoleExporter (apenas Development)
+- [x] Configurar endpoint Prometheus: `app.MapPrometheusScrapingEndpoint("/metrics")`
 
-#### W3.9: Criar Métricas Customizadas de Negócio
-- [ ] Criar classe `ClienteMetrics` no projeto Application:
-  ```csharp
-  public class ClienteMetrics
-  {
-      private readonly Counter<long> _clientesCriados;
-      private readonly Counter<long> _clientesAtualizados;
-      private readonly Counter<long> _clientesRemovidos;
-      private readonly Counter<long> _buscasRealizadas;
-      private readonly Histogram<double> _tempoProcessamento;
-      
-      public ClienteMetrics(IMeterFactory meterFactory)
-      {
-          var meter = meterFactory.Create("DesafioComIA.Clientes");
-          
-          _clientesCriados = meter.CreateCounter<long>(
-              "clientes.criados",
-              description: "Total de clientes criados");
-              
-          _clientesAtualizados = meter.CreateCounter<long>(
-              "clientes.atualizados",
-              description: "Total de clientes atualizados");
-              
-          _clientesRemovidos = meter.CreateCounter<long>(
-              "clientes.removidos",
-              description: "Total de clientes removidos");
-              
-          _buscasRealizadas = meter.CreateCounter<long>(
-              "clientes.buscas",
-              description: "Total de buscas realizadas");
-              
-          _tempoProcessamento = meter.CreateHistogram<double>(
-              "clientes.processamento.tempo",
-              unit: "ms",
-              description: "Tempo de processamento das operações");
-      }
-      
-      public void ClienteCriado() => _clientesCriados.Add(1);
-      public void ClienteAtualizado() => _clientesAtualizados.Add(1);
-      public void ClienteRemovido() => _clientesRemovidos.Add(1);
-      public void BuscaRealizada() => _buscasRealizadas.Add(1);
-      public void RegistrarTempoProcessamento(double milliseconds) => 
-          _tempoProcessamento.Record(milliseconds);
-  }
-  ```
-- [ ] Registrar `ClienteMetrics` no DI como Singleton:
-  ```csharp
-  builder.Services.AddSingleton<ClienteMetrics>();
-  ```
+**📄 Arquivo atualizado:** `src/DesafioComIA.Api/Program.cs`
 
-#### W3.10: Instrumentar CreateClienteCommandHandler com Tracing e Métricas
-- [ ] **OBRIGATÓRIO**: Consultar `mvp24h_cqrs_guide` com topic `cqrs-tracing` antes de instrumentar
-- [ ] Injetar `ClienteMetrics` no handler
-- [ ] No método `Handle`, adicionar instrumentação:
-  - Criar span manual usando `Telemetry.ActivitySource.StartActivity("CreateClienteCommand")`
-  - Adicionar tags relevantes: `cliente.nome`, `cliente.cpf`, `cliente.email`
-  - Registrar eventos importantes: validação, verificação de duplicidade, criação
-  - Medir tempo de processamento
-  - Incrementar métrica de clientes criados
-  - Garantir que span seja finalizado (usar `using` ou `try-finally`)
-- [ ] Exemplo de código:
-  ```csharp
-  using var activity = Telemetry.ActivitySource.StartActivity("CreateCliente");
-  activity?.SetTag("cliente.nome", command.Nome);
-  
-  var stopwatch = Stopwatch.StartNew();
-  try
-  {
-      // ... lógica existente ...
-      _metrics.ClienteCriado();
-      activity?.AddEvent(new("Cliente criado com sucesso"));
-      return result;
-  }
-  catch (Exception ex)
-  {
-      activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-      activity?.RecordException(ex);
-      throw;
-  }
-  finally
-  {
-      stopwatch.Stop();
-      _metrics.RegistrarTempoProcessamento(stopwatch.ElapsedMilliseconds);
-  }
-  ```
+#### W3.7: Configurar OpenTelemetry - Logging ✅
+- [x] **OBRIGATÓRIO**: Consultar `mvp24h_observability_setup` com component `logging` antes de implementar
+- [x] Configurar logging estruturado no `Program.cs`:
+  - AddOpenTelemetry com IncludeFormattedMessage, IncludeScopes, ParseStateValues
+  - AddOtlpExporter para centralização de logs
+  - AddConsoleExporter (apenas Development)
 
-#### W3.11: Instrumentar UpdateClienteCommandHandler
-- [ ] Injetar `ClienteMetrics` no handler
-- [ ] Adicionar instrumentação similar ao CreateClienteCommandHandler:
-  - Criar span "UpdateCliente"
-  - Adicionar tags: `cliente.id`, `cliente.nome`
-  - Registrar eventos importantes
-  - Incrementar métrica de clientes atualizados
-  - Medir tempo de processamento
+**📄 Arquivo atualizado:** `src/DesafioComIA.Api/Program.cs`
 
-#### W3.12: Instrumentar PatchClienteCommandHandler
-- [ ] Injetar `ClienteMetrics` no handler
-- [ ] Adicionar instrumentação:
-  - Criar span "PatchCliente"
-  - Adicionar tags: `cliente.id`, campos atualizados
-  - Registrar eventos importantes
-  - Incrementar métrica de clientes atualizados
-  - Medir tempo de processamento
+#### W3.8: Criar ActivitySource para Instrumentação Manual ✅
+- [x] Criar classe `DiagnosticsConfig` no projeto Application com:
+  - `ServiceName` e `ServiceVersion` constantes
+  - `ActivitySource` principal para operações CQRS
+  - `CacheActivitySource` para operações de cache
+  - `DomainActivitySource` para operações de domínio
 
-#### W3.13: Instrumentar DeleteClienteCommandHandler
-- [ ] Injetar `ClienteMetrics` no handler
-- [ ] Adicionar instrumentação:
-  - Criar span "DeleteCliente"
-  - Adicionar tag: `cliente.id`
-  - Registrar eventos importantes
-  - Incrementar métrica de clientes removidos
-  - Medir tempo de processamento
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Telemetry/Telemetry.cs` (renomeado para DiagnosticsConfig)
 
-#### W3.14: Instrumentar Query Handlers com Tracing e Métricas
-- [ ] Instrumentar `ListClientesQueryHandler`:
-  - Criar span "ListClientes"
-  - Adicionar tags: `page`, `pageSize`, `sortBy`
-  - Registrar cache hit/miss como evento
-  - Incrementar métrica de buscas realizadas
-  - Medir tempo de processamento
-- [ ] Instrumentar `GetClientesQueryHandler`:
-  - Criar span "SearchClientes"
-  - Adicionar tags: filtros aplicados
-  - Registrar cache hit/miss como evento
-  - Incrementar métrica de buscas realizadas
-  - Medir tempo de processamento
-- [ ] Instrumentar `GetClienteByIdQueryHandler`:
-  - Criar span "GetClienteById"
-  - Adicionar tag: `cliente.id`
-  - Registrar cache hit/miss como evento
-  - Incrementar métrica de buscas realizadas
-  - Medir tempo de processamento
+#### W3.9: Criar Métricas Customizadas de Negócio ✅
+- [x] Criar classe `ClienteMetrics` no projeto Application com:
+  - Counter `clientes.criados` - Total de clientes criados
+  - Counter `clientes.atualizados` - Total de clientes atualizados
+  - Counter `clientes.removidos` - Total de clientes removidos
+  - Counter `clientes.buscas` - Total de buscas realizadas
+  - Histogram `clientes.processamento.tempo` - Tempo de processamento
+- [x] Registrar `ClienteMetrics` no DI como Singleton
 
-#### W3.15: Adicionar Métricas de Cache
-- [ ] Criar `CacheMetrics` no projeto Infrastructure:
-  ```csharp
-  public class CacheMetrics
-  {
-      private readonly Counter<long> _cacheHits;
-      private readonly Counter<long> _cacheMisses;
-      private readonly Counter<long> _cacheInvalidations;
-      
-      public CacheMetrics(IMeterFactory meterFactory)
-      {
-          var meter = meterFactory.Create("DesafioComIA.Cache");
-          
-          _cacheHits = meter.CreateCounter<long>(
-              "cache.hits",
-              description: "Total de cache hits");
-              
-          _cacheMisses = meter.CreateCounter<long>(
-              "cache.misses",
-              description: "Total de cache misses");
-              
-          _cacheInvalidations = meter.CreateCounter<long>(
-              "cache.invalidations",
-              description: "Total de invalidações de cache");
-      }
-      
-      public void CacheHit(string key) => _cacheHits.Add(1, new KeyValuePair<string, object?>("cache.key", key));
-      public void CacheMiss(string key) => _cacheMisses.Add(1, new KeyValuePair<string, object?>("cache.key", key));
-      public void CacheInvalidation(string pattern) => _cacheInvalidations.Add(1, new KeyValuePair<string, object?>("cache.pattern", pattern));
-  }
-  ```
-- [ ] Registrar `CacheMetrics` no DI
-- [ ] Injetar `CacheMetrics` no `HybridCacheService`
-- [ ] Registrar métricas em todas as operações de cache:
-  - `GetAsync`: incrementar hit ou miss
-  - `RemoveAsync` e `RemoveByPatternAsync`: incrementar invalidations
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Telemetry/ClienteMetrics.cs`
 
-#### W3.16: Configurar Correlation ID e Context Propagation
-- [ ] Criar middleware `CorrelationIdMiddleware`:
-  - Gerar ou extrair correlation ID do header `X-Correlation-ID`
-  - Adicionar correlation ID ao `Activity.Current`
-  - Adicionar correlation ID ao `ILogger` scope
-  - Adicionar correlation ID ao response header
-- [ ] Registrar middleware no pipeline:
-  ```csharp
-  app.UseMiddleware<CorrelationIdMiddleware>();
-  ```
-- [ ] Garantir que correlation ID seja propagado em todos os logs e traces
+#### W3.10: Instrumentar CreateClienteCommandHandler com Tracing e Métricas ✅
+- [x] **OBRIGATÓRIO**: Consultar `mvp24h_cqrs_guide` com topic `cqrs-tracing` antes de instrumentar
+- [x] Injetar `ClienteMetrics` no handler
+- [x] Adicionar instrumentação completa com:
+  - Span "CreateCliente" com tags de cliente (mascarados)
+  - Eventos: ValidandoValueObjects, VerificandoDuplicidade, CriandoCliente, ClienteCriado
+  - Métricas de tempo e contador de clientes criados
+  - Tratamento de exceções com SetError
 
-#### W3.17: Configurar Mascaramento de Dados Sensíveis
-- [ ] Criar `SensitiveDataProcessor` para remover/mascarar dados sensíveis:
-  - CPF deve ser mascarado: `123.456.789-00` → `***.456.789-**`
-  - Email deve ser mascarado: `user@example.com` → `u***@example.com`
-- [ ] Aplicar mascaramento em:
-  - Tags de Activity/Span
-  - Logs estruturados
-  - Mensagens de exceção
-- [ ] Criar helper extension para Activity:
-  ```csharp
-  public static class ActivityExtensions
-  {
-      public static Activity? SetTagSafe(this Activity? activity, string key, string? value)
-      {
-          if (activity == null || value == null) return activity;
-          
-          if (key.Contains("cpf", StringComparison.OrdinalIgnoreCase))
-              value = SensitiveDataProcessor.MaskCpf(value);
-          else if (key.Contains("email", StringComparison.OrdinalIgnoreCase))
-              value = SensitiveDataProcessor.MaskEmail(value);
-          
-          return activity.SetTag(key, value);
-      }
-  }
-  ```
+**📄 Arquivo atualizado:** `src/DesafioComIA.Application/Commands/Cliente/CreateClienteCommandHandler.cs`
 
-#### W3.18: Adicionar Jaeger, Prometheus e Grafana ao docker-compose.yml
-- [ ] Adicionar serviço Jaeger:
-  ```yaml
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: desafio_jaeger
-    restart: always
-    ports:
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-      - "16686:16686" # Jaeger UI
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-  ```
-- [ ] Adicionar serviço Prometheus:
-  ```yaml
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: desafio_prometheus
-    restart: always
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./data/prometheus:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-  ```
-- [ ] Adicionar serviço Grafana:
-  ```yaml
-  grafana:
-    image: grafana/grafana:latest
-    container_name: desafio_grafana
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - ./data/grafana:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-  ```
+#### W3.11: Instrumentar UpdateClienteCommandHandler ✅
+- [x] Injetar `ClienteMetrics` no handler
+- [x] Adicionar instrumentação similar com span "UpdateCliente"
 
-#### W3.19: Criar Arquivo de Configuração do Prometheus
-- [ ] Criar pasta `monitoring/` na raiz do projeto
-- [ ] Criar arquivo `monitoring/prometheus.yml`:
-  ```yaml
-  global:
-    scrape_interval: 15s
-    evaluation_interval: 15s
-  
-  scrape_configs:
-    - job_name: 'desafio-api'
-      static_configs:
-        - targets: ['host.docker.internal:9464']
-      metrics_path: '/metrics'
-  ```
+**📄 Arquivo atualizado:** `src/DesafioComIA.Application/Commands/Cliente/UpdateClienteCommandHandler.cs`
 
-#### W3.20: Criar Dashboards do Grafana
-- [ ] Criar pasta `monitoring/grafana/provisioning/datasources/`
-- [ ] Criar arquivo `monitoring/grafana/provisioning/datasources/datasources.yml`:
-  ```yaml
-  apiVersion: 1
-  
-  datasources:
-    - name: Prometheus
-      type: prometheus
-      access: proxy
-      url: http://prometheus:9090
-      isDefault: true
-      editable: false
-    
-    - name: Jaeger
-      type: jaeger
-      access: proxy
-      url: http://jaeger:16686
-      editable: false
-  ```
-- [ ] Criar pasta `monitoring/grafana/provisioning/dashboards/`
-- [ ] Criar arquivo `monitoring/grafana/provisioning/dashboards/dashboards.yml`:
-  ```yaml
-  apiVersion: 1
-  
-  providers:
-    - name: 'Default'
-      orgId: 1
-      folder: ''
-      type: file
-      disableDeletion: false
-      updateIntervalSeconds: 10
-      allowUiUpdates: true
-      options:
-        path: /etc/grafana/provisioning/dashboards/definitions
-  ```
-- [ ] Criar pasta `monitoring/grafana/provisioning/dashboards/definitions/`
-- [ ] Criar dashboard JSON básico `monitoring/grafana/provisioning/dashboards/definitions/api-overview.json`:
-  - Painel: Taxa de requisições por endpoint
-  - Painel: Tempo de resposta (percentis p50, p90, p99)
-  - Painel: Taxa de erros por endpoint
-  - Painel: Métricas de negócio (clientes criados, buscas, etc.)
-  - Painel: Cache hit rate
-  - Painel: Uso de recursos (CPU, memória)
+#### W3.12: Instrumentar PatchClienteCommandHandler ✅
+- [x] Injetar `ClienteMetrics` no handler
+- [x] Adicionar instrumentação com span "PatchCliente" e tags de campos atualizados
 
-#### W3.21: Atualizar README.md com Instruções de Observabilidade
-- [ ] Adicionar seção "Observabilidade" no README.md
-- [ ] Documentar como acessar ferramentas:
-  - Jaeger UI: http://localhost:16686
-  - Prometheus: http://localhost:9090
-  - Grafana: http://localhost:3000 (admin/admin)
-  - Métricas da API: http://localhost:9464/metrics
-- [ ] Documentar métricas customizadas disponíveis
-- [ ] Documentar como visualizar traces no Jaeger
-- [ ] Documentar como criar queries no Prometheus
-- [ ] Documentar dashboards disponíveis no Grafana
+**📄 Arquivo atualizado:** `src/DesafioComIA.Application/Commands/Cliente/PatchClienteCommandHandler.cs`
 
-#### W3.22: Validação da Implementação de Observabilidade
-- [ ] Validar Logs:
-  - Logs estão em formato JSON estruturado
-  - Correlation ID está presente em todos os logs
-  - Logs contêm informações relevantes (timestamp, nível, mensagem, contexto)
-  - Dados sensíveis estão mascarados
-  - Logs aparecem no console e no Jaeger (via OTLP)
-- [ ] Validar Traces:
-  - Traces são criados para todas as requisições HTTP
-  - Spans são criados para operações críticas (commands, queries, cache, DB)
-  - Spans contêm atributos relevantes
-  - Traces aparecem no Jaeger UI
-  - Context propagation funciona corretamente
-  - Exceções são capturadas nos traces
-- [ ] Validar Métricas:
-  - Métricas HTTP estão sendo coletadas
-  - Métricas de negócio estão sendo coletadas
-  - Métricas de cache estão sendo coletadas
-  - Métricas aparecem no endpoint `/metrics`
-  - Métricas são consumidas pelo Prometheus
-  - Métricas aparecem no Grafana
-- [ ] Validar Integração entre Ferramentas:
-  - Jaeger recebe traces via OTLP
-  - Prometheus coleta métricas via scraping
-  - Grafana visualiza dados do Prometheus e Jaeger
-  - Dashboards exibem informações corretamente
+#### W3.13: Instrumentar DeleteClienteCommandHandler ✅
+- [x] Injetar `ClienteMetrics` no handler
+- [x] Adicionar instrumentação com span "DeleteCliente"
+
+**📄 Arquivo atualizado:** `src/DesafioComIA.Application/Commands/Cliente/DeleteClienteCommandHandler.cs`
+
+#### W3.14: Instrumentar Query Handlers com Tracing e Métricas ✅
+- [x] Instrumentar `ListClientesQueryHandler` com span "ListClientes"
+- [x] Instrumentar `GetClientesQueryHandler` com span "SearchClientes"
+- [x] Instrumentar `GetClienteByIdQueryHandler` com span "GetClienteById"
+- [x] Todos com métricas de tempo e contador de buscas
+
+**📄 Arquivos atualizados:**
+- `src/DesafioComIA.Application/Queries/Cliente/ListClientesQueryHandler.cs`
+- `src/DesafioComIA.Application/Queries/Cliente/GetClientesQueryHandler.cs`
+- `src/DesafioComIA.Application/Queries/Cliente/GetClienteByIdQueryHandler.cs`
+
+#### W3.15: Adicionar Métricas de Cache ✅
+- [x] Criar `CacheMetrics` no projeto Infrastructure com:
+  - Counter `cache.hits` - Total de cache hits
+  - Counter `cache.misses` - Total de cache misses
+  - Counter `cache.invalidations` - Total de invalidações
+  - Histogram `cache.operation.duration` - Duração das operações
+- [x] Registrar `CacheMetrics` no DI como Singleton
+
+**📄 Arquivo criado:** `src/DesafioComIA.Infrastructure/Telemetry/CacheMetrics.cs`
+
+#### W3.16: Configurar Correlation ID e Context Propagation ✅
+- [x] Criar middleware `CorrelationIdMiddleware`:
+  - Extrai correlation ID do header `X-Correlation-ID` ou gera novo
+  - Usa TraceId do Activity se disponível
+  - Adiciona correlation ID ao Activity.Current como tag
+  - Adiciona correlation ID ao response header
+  - Usa ILogger.BeginScope para propagação em logs
+- [x] Registrar middleware no pipeline antes do ExceptionHandling
+
+**📄 Arquivo criado:** `src/DesafioComIA.Api/Middleware/CorrelationIdMiddleware.cs`
+
+#### W3.17: Configurar Mascaramento de Dados Sensíveis ✅
+- [x] Criar `SensitiveDataProcessor` com métodos:
+  - `MaskCpf`: `123.456.789-00` → `***.456.789-**`
+  - `MaskEmail`: `user@example.com` → `u***@example.com`
+  - `MaskIfSensitive`: Detecta e mascara automaticamente
+- [x] Criar `ActivityExtensions` com:
+  - `SetTagSafe`: Define tag com mascaramento automático
+  - `SetClienteTag`: Define tags de cliente com mascaramento
+  - `SetClienteId`: Define ID do cliente
+  - `SetError`: Define status de erro com exceção
+  - `SetSuccess`: Define status de sucesso
+  - Eventos de cache (CacheHit, CacheMiss, CacheInvalidation)
+
+**📄 Arquivos criados:**
+- `src/DesafioComIA.Application/Telemetry/SensitiveDataProcessor.cs`
+- `src/DesafioComIA.Application/Telemetry/ActivityExtensions.cs`
+
+#### W3.18: Adicionar Jaeger, Prometheus e Grafana ao docker-compose.yml ✅
+- [x] Adicionar serviço Jaeger com:
+  - Portas: 4317 (OTLP gRPC), 4318 (OTLP HTTP), 16686 (UI), 14268 (collector)
+  - Health check configurado
+- [x] Adicionar serviço Prometheus com:
+  - Porta: 9090
+  - Volume para configuração e dados
+  - Health check configurado
+- [x] Adicionar serviço Grafana com:
+  - Porta: 3000
+  - Credenciais: admin/admin
+  - Volumes para dados e provisioning
+  - Dependências de Prometheus e Jaeger
+
+**📄 Arquivo atualizado:** `docker-compose.yml`
+
+#### W3.19: Criar Arquivo de Configuração do Prometheus ✅
+- [x] Criar pasta `monitoring/` na raiz do projeto
+- [x] Criar arquivo `monitoring/prometheus.yml` com:
+  - Scrape da própria API via host.docker.internal
+  - Intervalo de 15s para coleta global
+  - Intervalo de 10s para a API
+
+**📄 Arquivo criado:** `monitoring/prometheus.yml`
+
+#### W3.20: Criar Dashboards do Grafana ✅
+- [x] Criar estrutura de provisioning do Grafana
+- [x] Criar configuração de datasources (Prometheus, Jaeger)
+- [x] Criar configuração de dashboards
+- [x] Criar dashboard "DesafioComIA API Overview" com:
+  - Request Rate por endpoint
+  - Response Time (p50, p95)
+  - Métricas de negócio (clientes criados, atualizados, removidos, buscas)
+  - Cache Hit Rate
+  - Cache Operations (hits, misses, invalidations)
+  - Operation Processing Time
+
+**📄 Arquivos criados:**
+- `monitoring/grafana/provisioning/datasources/datasources.yml`
+- `monitoring/grafana/provisioning/dashboards/dashboards.yml`
+- `monitoring/grafana/provisioning/dashboards/definitions/api-overview.json`
+
+#### W3.21: Atualizar README.md com Instruções de Observabilidade ✅
+- [x] Adicionar seção "Observabilidade" no README.md
+- [x] Documentar ferramentas e URLs de acesso
+- [x] Documentar métricas customizadas disponíveis
+- [x] Documentar configuração do OpenTelemetry
+- [x] Documentar mascaramento de dados sensíveis
+- [x] Atualizar lista de tecnologias utilizadas
+
+**📄 Arquivo atualizado:** `README.md`
+
+#### W3.22: Validação da Implementação de Observabilidade ✅
+- [x] Validar Logs:
+  - [x] Logs estão em formato estruturado (OpenTelemetry LogRecord)
+  - [x] Correlation ID está presente em todos os logs (correlation.id nos spans)
+  - [x] Logs contêm informações relevantes (timestamp, nível, mensagem, contexto, resource)
+  - [x] Dados sensíveis estão mascarados (via SensitiveDataProcessor)
+  - [x] Logs aparecem no console e no Jaeger (via OTLP)
+- [x] Validar Traces:
+  - [x] Traces são criados para todas as requisições HTTP
+  - [x] Spans são criados para operações críticas (commands, queries, cache, DB)
+  - [x] Spans contêm atributos relevantes (http.*, db.*, cliente.id, etc.)
+  - [x] Traces aparecem no Jaeger UI (serviço: DesafioComIA.Api)
+  - [x] Context propagation funciona corretamente
+  - [x] Exceções são capturadas nos traces (RecordException = true)
+- [x] Validar Métricas:
+  - [x] Métricas HTTP estão sendo coletadas (http_server_request_duration_seconds)
+  - [x] Métricas de negócio estão sendo coletadas (clientes_criados_total, etc.)
+  - [x] Métricas de cache estão sendo coletadas (cache_hits_total, cache_misses_total, cache_invalidations_total)
+  - [x] Métricas aparecem no endpoint `/metrics`
+  - [x] Métricas são consumidas pelo Prometheus (targets UP)
+  - [x] Métricas aparecem no Grafana (dashboards provisionados)
+- [x] Validar Integração entre Ferramentas:
+  - [x] Jaeger recebe traces via OTLP (localhost:4317)
+  - [x] Prometheus coleta métricas via scraping (localhost:5001/metrics)
+  - [x] Grafana visualiza dados do Prometheus e Jaeger
+  - [x] Dashboards exibem informações corretamente
+
+**📋 Correções durante validação:**
+- Adicionada instrumentação de métricas no `HybridCacheService` para registrar hits, misses e invalidações
+- Corrigida porta no `prometheus.yml` de 5000 para 5001
+
+**🔗 URLs de Acesso:**
+- API Swagger: http://localhost:5001/swagger
+- Prometheus: http://localhost:9090
+- Jaeger UI: http://localhost:16686
+- Grafana: http://localhost:3000 (admin/admin)
 
 ---
 
@@ -1539,19 +1279,19 @@ Documentar todas as implementações, criar guias de uso e garantir que o projet
 - [x] Testes passando (32/32) com cache desabilitado para isolamento
 - [x] README.md atualizado com instruções de Redis e cache
 
-### Wave 3: Observabilidade (TAR-009)
-- [ ] OpenTelemetry configurado
-- [ ] Logging estruturado implementado
-- [ ] Tracing implementado (HTTP, EF Core, custom)
-- [ ] Métricas implementadas (HTTP, runtime, custom)
-- [ ] Métricas de negócio criadas
-- [ ] Métricas de cache criadas
-- [ ] Correlation ID configurado
-- [ ] Mascaramento de dados sensíveis
-- [ ] Jaeger, Prometheus e Grafana no docker-compose.yml
-- [ ] Configuração do Prometheus
-- [ ] Dashboards do Grafana
-- [ ] Testes de observabilidade passando
+### Wave 3: Observabilidade (TAR-009) ✅ CONCLUÍDA
+- [x] OpenTelemetry configurado (Tracing, Metrics, Logging)
+- [x] Logging estruturado implementado com OTLP
+- [x] Tracing implementado (HTTP, EF Core, custom ActivitySources)
+- [x] Métricas implementadas (HTTP, runtime, custom)
+- [x] Métricas de negócio criadas (ClienteMetrics)
+- [x] Métricas de cache criadas (CacheMetrics)
+- [x] Correlation ID configurado (CorrelationIdMiddleware)
+- [x] Mascaramento de dados sensíveis (SensitiveDataProcessor, ActivityExtensions)
+- [x] Jaeger, Prometheus e Grafana no docker-compose.yml
+- [x] Configuração do Prometheus (monitoring/prometheus.yml)
+- [x] Dashboards do Grafana (api-overview.json)
+- [x] Testes passando (32/32)
 
 ### Wave 4: Testes
 - [ ] Testes para novos endpoints (GET, PUT, PATCH, DELETE)

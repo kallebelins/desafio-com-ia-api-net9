@@ -1,9 +1,11 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using DesafioComIA.Infrastructure.Configuration;
 using DesafioComIA.Infrastructure.Services.Cache;
+using DesafioComIA.Infrastructure.Telemetry;
 using StackExchange.Redis;
 
 namespace DesafioComIA.Infrastructure.Caching;
@@ -17,6 +19,7 @@ public class HybridCacheService : ICacheService
     private readonly CacheSettings _settings;
     private readonly ILogger<HybridCacheService> _logger;
     private readonly IConnectionMultiplexer? _redis;
+    private readonly CacheMetrics _metrics;
 
     // Registro de chaves para invalidação por padrão (fallback quando Redis não está disponível)
     private readonly ConcurrentDictionary<string, DateTime> _keyRegistry = new();
@@ -25,11 +28,13 @@ public class HybridCacheService : ICacheService
         HybridCache cache,
         IOptions<CacheSettings> settings,
         ILogger<HybridCacheService> logger,
+        CacheMetrics metrics,
         IConnectionMultiplexer? redis = null)
     {
         _cache = cache;
         _settings = settings.Value;
         _logger = logger;
+        _metrics = metrics;
         _redis = redis;
     }
 
@@ -52,6 +57,9 @@ public class HybridCacheService : ICacheService
         var fullKey = GetFullKey(key);
         var cacheExpiration = expiration ?? TimeSpan.FromMinutes(_settings.DefaultTTLMinutes);
         var localExpiration = TimeSpan.FromMinutes(_settings.LocalCacheTTLMinutes);
+        var keyPattern = ExtractKeyPattern(key);
+        var stopwatch = Stopwatch.StartNew();
+        var wasHit = true;
 
         try
         {
@@ -64,9 +72,26 @@ public class HybridCacheService : ICacheService
             // Converter Task<T> para ValueTask<T> para compatibilidade com HybridCache
             var result = await _cache.GetOrCreateAsync(
                 fullKey,
-                async (ct) => await factory(ct),
+                async (ct) =>
+                {
+                    wasHit = false; // Factory foi executada = cache miss
+                    return await factory(ct);
+                },
                 options,
                 cancellationToken: cancellationToken);
+
+            stopwatch.Stop();
+            
+            // Registrar métricas
+            if (wasHit)
+            {
+                _metrics.CacheHit(keyPattern);
+            }
+            else
+            {
+                _metrics.CacheMiss(keyPattern);
+            }
+            _metrics.RecordOperationDuration(stopwatch.Elapsed.TotalMilliseconds, "get_or_create");
 
             // Registrar chave para invalidação
             TrackKey(fullKey);
@@ -75,9 +100,24 @@ public class HybridCacheService : ICacheService
         }
         catch (Exception ex)
         {
+            stopwatch.Stop();
+            _metrics.CacheMiss(keyPattern);
+            _metrics.RecordOperationDuration(stopwatch.Elapsed.TotalMilliseconds, "get_or_create");
             _logger.LogWarning(ex, "Erro ao acessar cache para chave {Key}, executando factory diretamente", fullKey);
             return await factory(cancellationToken);
         }
+    }
+    
+    /// <summary>
+    /// Extrai o padrão da chave para uso em métricas (remove IDs específicos)
+    /// </summary>
+    private static string ExtractKeyPattern(string key)
+    {
+        // Remove GUIDs e números específicos para agrupar métricas
+        var pattern = System.Text.RegularExpressions.Regex.Replace(key, @"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", "{id}");
+        pattern = System.Text.RegularExpressions.Regex.Replace(pattern, @"page:\d+", "page:{n}");
+        pattern = System.Text.RegularExpressions.Regex.Replace(pattern, @"pageSize:\d+", "pageSize:{n}");
+        return pattern;
     }
 
     /// <inheritdoc />
@@ -196,6 +236,7 @@ public class HybridCacheService : ICacheService
 
         var fullPattern = GetFullKey(pattern);
         var removedCount = 0;
+        var stopwatch = Stopwatch.StartNew();
 
         _logger.LogDebug("Iniciando remoção de chaves com padrão {Pattern} (full: {FullPattern})", pattern, fullPattern);
         _logger.LogDebug("Chaves registradas no momento: {Count}", _keyRegistry.Count);
@@ -222,12 +263,21 @@ public class HybridCacheService : ICacheService
             {
                 var redisRemoved = await RemoveByPatternRedisAsync(fullPattern, cancellationToken);
                 _logger.LogDebug("Removidas {Count} chaves adicionais do Redis", redisRemoved);
+                removedCount += redisRemoved;
             }
+
+            stopwatch.Stop();
+            
+            // Registrar métricas de invalidação
+            _metrics.CacheInvalidation(ExtractKeyPattern(pattern));
+            _metrics.RecordOperationDuration(stopwatch.Elapsed.TotalMilliseconds, "invalidate");
 
             _logger.LogInformation("Removidas {Count} chaves do cache matching padrão {Pattern}", removedCount, fullPattern);
         }
         catch (Exception ex)
         {
+            stopwatch.Stop();
+            _metrics.RecordOperationDuration(stopwatch.Elapsed.TotalMilliseconds, "invalidate");
             _logger.LogWarning(ex, "Erro ao remover chaves por padrão {Pattern} do cache", fullPattern);
         }
     }

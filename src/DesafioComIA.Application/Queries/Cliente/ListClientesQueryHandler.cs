@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -7,6 +8,7 @@ using Mvp24Hours.Core.Contract.Data;
 using Mvp24Hours.Core.ValueObjects;
 using Mvp24Hours.Core.ValueObjects.Logic;
 using DesafioComIA.Application.DTOs;
+using DesafioComIA.Application.Telemetry;
 using DesafioComIA.Infrastructure.Configuration;
 using DesafioComIA.Infrastructure.Services.Cache;
 using System.Linq.Expressions;
@@ -23,36 +25,69 @@ public class ListClientesQueryHandler : IMediatorQueryHandler<ListClientesQuery,
     private readonly ICacheService _cacheService;
     private readonly CacheSettings _cacheSettings;
     private readonly ILogger<ListClientesQueryHandler> _logger;
+    private readonly ClienteMetrics _metrics;
 
     public ListClientesQueryHandler(
         IRepositoryAsync<Domain.Entities.Cliente> repository,
         IMapper mapper,
         ICacheService cacheService,
         IOptions<CacheSettings> cacheSettings,
-        ILogger<ListClientesQueryHandler> logger)
+        ILogger<ListClientesQueryHandler> logger,
+        ClienteMetrics metrics)
     {
         _repository = repository;
         _mapper = mapper;
         _cacheService = cacheService;
         _cacheSettings = cacheSettings.Value;
         _logger = logger;
+        _metrics = metrics;
     }
 
     public async Task<PagedResult<ClienteListDto>> Handle(ListClientesQuery request, CancellationToken cancellationToken)
     {
-        // Gerar chave de cache
-        var cacheKey = CacheKeyHelper.GetListClientesKey(
-            request.Page,
-            request.PageSize,
-            request.SortBy,
-            request.Descending);
+        using var activity = DiagnosticsConfig.ActivitySource.StartActivity("ListClientes");
+        activity?.SetTag("query.page", request.Page);
+        activity?.SetTag("query.page_size", request.PageSize);
+        activity?.SetTag("query.sort_by", request.SortBy ?? "nome");
+        activity?.SetTag("query.descending", request.Descending);
 
-        // Usar cache com GetOrCreateAsync
-        return await _cacheService.GetOrCreateAsync(
-            cacheKey,
-            async ct => await FetchFromDatabaseAsync(request, ct),
-            TimeSpan.FromMinutes(_cacheSettings.ListClientesTTLMinutes),
-            cancellationToken);
+        var stopwatch = Stopwatch.StartNew();
+        var sucesso = false;
+
+        try
+        {
+            // Gerar chave de cache
+            var cacheKey = CacheKeyHelper.GetListClientesKey(
+                request.Page,
+                request.PageSize,
+                request.SortBy,
+                request.Descending);
+
+            // Usar cache com GetOrCreateAsync
+            var result = await _cacheService.GetOrCreateAsync(
+                cacheKey,
+                async ct => await FetchFromDatabaseAsync(request, ct),
+                TimeSpan.FromMinutes(_cacheSettings.ListClientesTTLMinutes),
+                cancellationToken);
+
+            sucesso = true;
+            activity?.SetTag("query.total_count", result.TotalCount);
+            activity?.SetTag("query.items_returned", result.Items.Count);
+            activity?.SetSuccess();
+            _metrics.BuscaRealizada();
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetError(ex);
+            throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            _metrics.RegistrarTempoProcessamento(stopwatch.ElapsedMilliseconds, "ListClientes", sucesso);
+        }
     }
 
     /// <summary>

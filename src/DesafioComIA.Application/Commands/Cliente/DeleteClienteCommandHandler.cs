@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Mvp24Hours.Core.Contract.Data;
 using Mvp24Hours.Infrastructure.Cqrs.Abstractions;
 using DesafioComIA.Application.Exceptions;
+using DesafioComIA.Application.Telemetry;
 using DesafioComIA.Infrastructure.Services.Cache;
 using ClienteEntity = DesafioComIA.Domain.Entities.Cliente;
 
@@ -16,41 +18,73 @@ public class DeleteClienteCommandHandler : IMediatorCommandHandler<DeleteCliente
     private readonly IUnitOfWorkAsync _unitOfWork;
     private readonly ICacheService _cacheService;
     private readonly ILogger<DeleteClienteCommandHandler> _logger;
+    private readonly ClienteMetrics _metrics;
 
     public DeleteClienteCommandHandler(
         IRepositoryAsync<ClienteEntity> repository,
         IUnitOfWorkAsync unitOfWork,
         ICacheService cacheService,
-        ILogger<DeleteClienteCommandHandler> logger)
+        ILogger<DeleteClienteCommandHandler> logger,
+        ClienteMetrics metrics)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
         _cacheService = cacheService;
         _logger = logger;
+        _metrics = metrics;
     }
 
     public async Task<bool> Handle(DeleteClienteCommand request, CancellationToken cancellationToken)
     {
-        // Buscar cliente existente
-        var cliente = await _repository.GetByIdAsync(request.Id, cancellationToken);
+        using var activity = DiagnosticsConfig.ActivitySource.StartActivity("DeleteCliente");
+        activity?.SetClienteId(request.Id);
 
-        if (cliente is null)
+        var stopwatch = Stopwatch.StartNew();
+        var sucesso = false;
+
+        try
         {
-            throw new ClienteNaoEncontradoException(
-                $"Cliente com ID '{request.Id}' não foi encontrado.",
-                new Dictionary<string, object> { { "ClienteId", request.Id } });
+            activity?.AddEvent(new ActivityEvent("BuscandoCliente"));
+
+            // Buscar cliente existente
+            var cliente = await _repository.GetByIdAsync(request.Id, cancellationToken);
+
+            if (cliente is null)
+            {
+                throw new ClienteNaoEncontradoException(
+                    $"Cliente com ID '{request.Id}' não foi encontrado.",
+                    new Dictionary<string, object> { { "ClienteId", request.Id } });
+            }
+
+            activity?.AddEvent(new ActivityEvent("RemovendoCliente"));
+
+            // Remover cliente
+            await _repository.RemoveAsync(cliente, cancellationToken);
+
+            // Salvar mudanças com UnitOfWork
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            activity?.AddEvent(new ActivityEvent("ClienteRemovido"));
+
+            // Invalidar cache
+            await InvalidateCacheAsync(request.Id, cancellationToken);
+
+            sucesso = true;
+            activity?.SetSuccess("Cliente removido com sucesso");
+            _metrics.ClienteRemovido();
+
+            return true;
         }
-
-        // Remover cliente
-        await _repository.RemoveAsync(cliente, cancellationToken);
-
-        // Salvar mudanças com UnitOfWork
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        // Invalidar cache
-        await InvalidateCacheAsync(request.Id, cancellationToken);
-
-        return true;
+        catch (Exception ex)
+        {
+            activity?.SetError(ex);
+            throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            _metrics.RegistrarTempoProcessamento(stopwatch.ElapsedMilliseconds, "DeleteCliente", sucesso);
+        }
     }
 
     /// <summary>
