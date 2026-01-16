@@ -23,18 +23,21 @@ Padronizar todas as rotas da API de clientes conforme especificação RESTful, g
 
 ### Microtarefas
 
-#### W1.1: Analisar Estrutura Atual de Rotas
-- [ ] Listar todas as rotas atuais do `ClientesController`
-- [ ] Identificar endpoints que não seguem padrão RESTful
-- [ ] Documentar rotas atuais:
-  - `POST /api/clientes` (criar cliente)
-  - `GET /api/clientes` (listar clientes)
-  - `GET /api/clientes/search` (buscar clientes)
-- [ ] Identificar rotas faltantes conforme especificação:
-  - `GET /api/clientes/{id}` (obter cliente específico)
-  - `PUT /api/clientes/{id}` (atualizar cliente completo)
-  - `PATCH /api/clientes/{id}` (atualizar cliente parcial)
-  - `DELETE /api/clientes/{id}` (remover cliente)
+#### W1.1: Analisar Estrutura Atual de Rotas ✅
+- [x] Listar todas as rotas atuais do `ClientesController`
+- [x] Identificar endpoints que não seguem padrão RESTful
+- [x] Documentar rotas atuais:
+  - `POST /api/clientes` (criar cliente) ✅
+  - `GET /api/clientes` (listar clientes) ✅
+  - `GET /api/clientes/search` (buscar clientes) ✅
+- [x] Identificar rotas faltantes conforme especificação:
+  - `GET /api/clientes/{id}` (obter cliente específico) ❌ Placeholder
+  - `PUT /api/clientes/{id}` (atualizar cliente completo) ❌ Não existe
+  - `PATCH /api/clientes/{id}` (atualizar cliente parcial) ❌ Não existe
+  - `DELETE /api/clientes/{id}` (remover cliente) ❌ Não existe
+
+**📄 ADR gerado:** `tasks/002/tasks-002-arch-decisions.md` (ADR-002: Padrão Arquitetural para APIs RESTful)
+**Importância:** Este documento estabelece os padrões obrigatórios que TODOS os futuros módulos devem seguir.
 
 #### W1.2: Consultar Padrões Mvp24Hours para WebAPI
 - [ ] **OBRIGATÓRIO**: Executar `mvp24h_infrastructure_guide` com topic `webapi` para obter padrões de API
