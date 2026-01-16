@@ -410,7 +410,22 @@ appsettings.Production.json
 docker-compose.override.yml
 data/
 
+# Monitoring data (Prometheus, Grafana)
+monitoring/grafana/data/
+monitoring/prometheus/data/
+
 # Environment variables
 .env
 .env.local
 .env.*.local
+
+# Test results and coverage
+TestResults/
+coverage/
+coverage-report/
+*.trx
+
+# Secrets
+secrets/
+*.pfx
+*.p12

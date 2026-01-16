@@ -1,0 +1,392 @@
+{
+  "info": {
+    "_postman_id": "desafiocomia-api-collection",
+    "name": "DesafioComIA API",
+    "description": "Coleção de requisições para a API DesafioComIA - Gerenciamento de Clientes",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001",
+      "type": "string"
+    },
+    {
+      "key": "clienteId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Clientes",
+      "item": [
+        {
+          "name": "Criar Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('clienteId', jsonData.id);",
+                  "    pm.test('Cliente criado com sucesso', function () {",
+                  "        pm.expect(jsonData.id).to.not.be.empty;",
+                  "        pm.expect(jsonData.nome).to.not.be.empty;",
+                  "    });",
+                  "    pm.test('Header Location presente', function () {",
+                  "        pm.expect(pm.response.headers.get('Location')).to.include('/api/clientes/');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nome\": \"João da Silva\",\n    \"cpf\": \"123.456.789-00\",\n    \"email\": \"joao.silva@email.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes"]
+            },
+            "description": "Cria um novo cliente no sistema.\n\n**Validações:**\n- Nome: obrigatório, mínimo 3 caracteres\n- CPF: obrigatório, formato válido, único\n- Email: obrigatório, formato válido, único"
+          },
+          "response": [
+            {
+              "name": "201 - Cliente Criado",
+              "originalRequest": {
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"nome\": \"João da Silva\",\n    \"cpf\": \"123.456.789-00\",\n    \"email\": \"joao.silva@email.com\"\n}"
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"nome\": \"João da Silva\",\n    \"cpf\": \"123.456.789-00\",\n    \"email\": \"joao.silva@email.com\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Listar Clientes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has items array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.items).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes?page=1&pageSize=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lista todos os clientes com paginação.\n\n**Parâmetros:**\n- page: número da página (padrão: 1)\n- pageSize: itens por página (padrão: 10, máximo: 100)"
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar Clientes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has items array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.items).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/search?nome=silva",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes", "search"],
+              "query": [
+                {
+                  "key": "nome",
+                  "value": "silva",
+                  "description": "Filtro parcial por nome (case-insensitive)"
+                },
+                {
+                  "key": "cpf",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro exato por CPF"
+                },
+                {
+                  "key": "email",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filtro exato por email"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Busca clientes com filtros.\n\n**Filtros disponíveis:**\n- nome: busca parcial (contém)\n- cpf: busca exata\n- email: busca exata\n\nTodos os filtros são case-insensitive."
+          },
+          "response": []
+        },
+        {
+          "name": "Obter Cliente por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has client data', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.not.be.empty;",
+                  "    pm.expect(jsonData.nome).to.not.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes", "{{clienteId}}"]
+            },
+            "description": "Obtém um cliente específico pelo ID.\n\n**Variável:**\n- clienteId: preenchida automaticamente após criar um cliente"
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar Cliente (PUT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Cliente atualizado', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.nome).to.equal('João da Silva Atualizado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nome\": \"João da Silva Atualizado\",\n    \"cpf\": \"123.456.789-00\",\n    \"email\": \"joao.atualizado@email.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes", "{{clienteId}}"]
+            },
+            "description": "Atualiza todos os dados de um cliente (substituição completa).\n\n**Todos os campos são obrigatórios.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar Cliente Parcial (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Nome atualizado', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.nome).to.equal('João Carlos');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"nome\": \"João Carlos\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes", "{{clienteId}}"]
+            },
+            "description": "Atualiza parcialmente um cliente.\n\n**Pelo menos um campo deve ser informado.**\nCampos não informados permanecem inalterados."
+          },
+          "response": []
+        },
+        {
+          "name": "Remover Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/clientes/{{clienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clientes", "{{clienteId}}"]
+            },
+            "description": "Remove um cliente do sistema.\n\n**Atenção:** Esta operação é permanente."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cache (Development)",
+      "item": [
+        {
+          "name": "Estatísticas do Cache",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cache/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cache", "stats"]
+            },
+            "description": "Retorna estatísticas e configuração do cache.\n\n**Disponível apenas em ambiente Development.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Limpar Cache",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cache/clear",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cache", "clear"]
+            },
+            "description": "Limpa todo o cache de clientes.\n\n**Disponível apenas em ambiente Development.**"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health & Metrics",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Verifica a saúde da aplicação."
+          },
+          "response": []
+        },
+        {
+          "name": "Métricas Prometheus",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["metrics"]
+            },
+            "description": "Endpoint de métricas para scraping do Prometheus."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
