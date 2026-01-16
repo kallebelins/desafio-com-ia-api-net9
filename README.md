@@ -52,10 +52,12 @@ src/
 - **.NET 9**: Framework principal
 - **Mvp24Hours**: Framework de desenvolvimento com suporte a CQRS, Repository Pattern e muito mais
 - **PostgreSQL**: Banco de dados relacional
+- **Redis**: Cache distribuído (HybridCache L2)
+- **HybridCache**: Cache híbrido nativo do .NET 9 (L1 em memória + L2 Redis)
 - **Entity Framework Core**: ORM para acesso a dados
 - **FluentValidation**: Validação de dados
 - **AutoMapper**: Mapeamento de objetos
-- **Swagger/OpenAPI**: Documentação da API
+- **Swagger/OpenAPI**: Documentação da API nativa do .NET 9
 
 ## 📋 Funcionalidades
 
@@ -89,6 +91,20 @@ src/
 - Operador AND entre filtros
 - Validações individuais mantidas
 
+### TAR-007: Padronização de Rotas RESTful
+- API RESTful completa com CRUD de clientes
+- Endpoints: GET, POST, PUT, PATCH, DELETE
+- Headers corretos (Location no POST)
+- Códigos de status HTTP apropriados
+- ProblemDetails (RFC 7807) para erros
+
+### TAR-008: Cache com HybridCache
+- Cache em dois níveis (L1 memória + L2 Redis)
+- Cache em listagens e buscas de clientes
+- Invalidação automática em operações de escrita
+- TTL configurável por tipo de operação
+- Endpoint de diagnóstico de cache (Development)
+
 ## 📁 Documentação de Tarefas
 
 Este projeto possui documentação detalhada das tarefas:
@@ -108,20 +124,36 @@ Este projeto possui documentação detalhada das tarefas:
 
 #### Opção 1: Usando Docker Compose (Recomendado)
 
-1. Suba o container PostgreSQL usando Docker Compose:
+1. Suba os containers PostgreSQL e Redis usando Docker Compose:
 ```bash
 docker-compose up -d
 ```
 
-2. O banco de dados será criado automaticamente com as seguintes configurações:
+2. Os serviços serão criados automaticamente:
+   
+   **PostgreSQL:**
    - **Database**: DesafioComIA
    - **User**: postgres
    - **Password**: postgres
    - **Port**: 5432
+   
+   **Redis:**
+   - **Port**: 6379
+   - **Persistência**: AOF (Append-Only File)
 
-3. Para parar o container:
+3. Para verificar o status dos containers:
+```bash
+docker-compose ps
+```
+
+4. Para parar os containers:
 ```bash
 docker-compose down
+```
+
+5. Para parar e remover volumes (dados persistidos):
+```bash
+docker-compose down -v
 ```
 
 #### Opção 2: PostgreSQL Local
@@ -167,6 +199,34 @@ dotnet run --project src/DesafioComIA.Api
 ```
 https://localhost:5001/swagger
 ```
+
+### Configuração do Cache
+
+O cache pode ser configurado no `appsettings.json`:
+
+```json
+{
+  "Cache": {
+    "Enabled": true,
+    "UseRedis": true,
+    "RedisConnectionString": "localhost:6379",
+    "ListClientesTTLMinutes": 5,
+    "SearchClientesTTLMinutes": 5,
+    "GetClienteByIdTTLMinutes": 10
+  }
+}
+```
+
+**Opções de configuração:**
+- `Enabled`: Habilita/desabilita o cache globalmente
+- `UseRedis`: Se `true`, usa Redis como L2; se `false`, usa apenas memória (L1)
+- `RedisConnectionString`: String de conexão do Redis
+- `*TTLMinutes`: Tempo de vida do cache para cada tipo de operação
+
+**Endpoint de Diagnóstico (apenas Development):**
+- `GET /api/cache/stats` - Estatísticas do cache
+- `DELETE /api/cache/clear` - Limpa todo o cache de clientes
+- `DELETE /api/cache/key/{key}` - Remove chave específica
 
 ## 🧪 Testes
 
