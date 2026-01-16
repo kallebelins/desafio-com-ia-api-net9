@@ -2,7 +2,7 @@
 
 ## 📋 Tarefas
 
-### [ ] TAR-001: Cadastro de Cliente
+### [x] TAR-001: Cadastro de Cliente
 **Descrição:** Implementar funcionalidade para cadastrar novos clientes no sistema.
 
 **Regras de Negócio:**
@@ -29,7 +29,7 @@
 
 ---
 
-### [ ] TAR-002: Listagem de Clientes
+### [x] TAR-002: Listagem de Clientes
 **Descrição:** Implementar funcionalidade para listar clientes cadastrados no sistema.
 
 **Regras de Negócio:**
@@ -53,7 +53,7 @@
 
 ---
 
-### [ ] TAR-003: Filtro por Nome
+### [x] TAR-003: Filtro por Nome
 **Descrição:** Implementar funcionalidade de filtro para buscar clientes por nome.
 
 **Regras de Negócio:**
@@ -73,7 +73,7 @@
 
 ---
 
-### [ ] TAR-004: Filtro por CPF
+### [x] TAR-004: Filtro por CPF
 **Descrição:** Implementar funcionalidade de filtro para buscar clientes por CPF.
 
 **Regras de Negócio:**
@@ -94,7 +94,7 @@
 
 ---
 
-### [ ] TAR-005: Filtro por Email
+### [x] TAR-005: Filtro por Email
 **Descrição:** Implementar funcionalidade de filtro para buscar clientes por email.
 
 **Regras de Negócio:**
@@ -115,7 +115,7 @@
 
 ---
 
-### [ ] TAR-006: Combinação de Filtros
+### [x] TAR-006: Combinação de Filtros
 **Descrição:** Implementar suporte para combinação de múltiplos filtros simultaneamente.
 
 **Regras de Negócio:**
