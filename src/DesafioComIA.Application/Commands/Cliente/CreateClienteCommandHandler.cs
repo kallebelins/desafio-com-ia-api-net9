@@ -1,10 +1,12 @@
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using Mvp24Hours.Core.Contract.Data;
 using Mvp24Hours.Core.ValueObjects;
 using Mvp24Hours.Infrastructure.Cqrs.Abstractions;
 using DesafioComIA.Application.Commands.Cliente;
 using DesafioComIA.Application.DTOs;
 using DesafioComIA.Application.Exceptions;
+using DesafioComIA.Infrastructure.Services.Cache;
 using ClienteEntity = DesafioComIA.Domain.Entities.Cliente;
 
 namespace DesafioComIA.Application.Commands.Cliente;
@@ -14,15 +16,21 @@ public class CreateClienteCommandHandler : IMediatorCommandHandler<CreateCliente
     private readonly IRepositoryAsync<ClienteEntity> _repository;
     private readonly IUnitOfWorkAsync _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly ICacheService _cacheService;
+    private readonly ILogger<CreateClienteCommandHandler> _logger;
 
     public CreateClienteCommandHandler(
         IRepositoryAsync<ClienteEntity> repository,
         IUnitOfWorkAsync unitOfWork,
-        IMapper mapper)
+        IMapper mapper,
+        ICacheService cacheService,
+        ILogger<CreateClienteCommandHandler> logger)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _cacheService = cacheService;
+        _logger = logger;
     }
 
     public async Task<ClienteDto> Handle(CreateClienteCommand request, CancellationToken cancellationToken)
@@ -56,7 +64,34 @@ public class CreateClienteCommandHandler : IMediatorCommandHandler<CreateCliente
         // Salvar mudanças com UnitOfWork
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // Invalidar cache de listagens e buscas
+        await InvalidateCacheAsync(cancellationToken);
+
         // Mapear para DTO e retornar
         return _mapper.Map<ClienteDto>(cliente);
+    }
+
+    /// <summary>
+    /// Invalida o cache de listagens e buscas de clientes
+    /// </summary>
+    private async Task InvalidateCacheAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogDebug("Invalidando cache de clientes após criação");
+
+            // Invalidar cache de listagem
+            await _cacheService.RemoveByPatternAsync(CacheKeyHelper.GetClientesListPattern(), cancellationToken);
+
+            // Invalidar cache de busca
+            await _cacheService.RemoveByPatternAsync(CacheKeyHelper.GetClientesSearchPattern(), cancellationToken);
+
+            _logger.LogDebug("Cache de clientes invalidado com sucesso");
+        }
+        catch (Exception ex)
+        {
+            // Não falhar a operação se a invalidação do cache falhar
+            _logger.LogWarning(ex, "Erro ao invalidar cache de clientes após criação");
+        }
     }
 }

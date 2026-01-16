@@ -2,7 +2,7 @@
 
 ## 📋 Tarefas
 
-### [ ] TAR-007: Padronização de Rotas e Recursos da API
+### [x] TAR-007: Padronização de Rotas e Recursos da API
 **Descrição:** Padronizar todas as rotas da API de clientes conforme especificação RESTful, garantindo consistência e seguindo boas práticas de design de APIs.
 
 **Regras Técnicas:**

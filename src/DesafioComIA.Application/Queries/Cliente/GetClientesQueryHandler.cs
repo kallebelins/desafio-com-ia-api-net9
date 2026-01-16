@@ -1,10 +1,14 @@
 using AutoMapper;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Mvp24Hours.Application.Logic.Pagination;
 using Mvp24Hours.Infrastructure.Cqrs.Abstractions;
 using Mvp24Hours.Core.Contract.Data;
 using Mvp24Hours.Core.ValueObjects;
 using Mvp24Hours.Core.ValueObjects.Logic;
 using DesafioComIA.Application.DTOs;
+using DesafioComIA.Infrastructure.Configuration;
+using DesafioComIA.Infrastructure.Services.Cache;
 using System.Linq.Expressions;
 
 namespace DesafioComIA.Application.Queries.Cliente;
@@ -16,15 +20,51 @@ public class GetClientesQueryHandler : IMediatorQueryHandler<GetClientesQuery, P
 {
     private readonly IRepositoryAsync<Domain.Entities.Cliente> _repository;
     private readonly IMapper _mapper;
+    private readonly ICacheService _cacheService;
+    private readonly CacheSettings _cacheSettings;
+    private readonly ILogger<GetClientesQueryHandler> _logger;
 
-    public GetClientesQueryHandler(IRepositoryAsync<Domain.Entities.Cliente> repository, IMapper mapper)
+    public GetClientesQueryHandler(
+        IRepositoryAsync<Domain.Entities.Cliente> repository,
+        IMapper mapper,
+        ICacheService cacheService,
+        IOptions<CacheSettings> cacheSettings,
+        ILogger<GetClientesQueryHandler> logger)
     {
         _repository = repository;
         _mapper = mapper;
+        _cacheService = cacheService;
+        _cacheSettings = cacheSettings.Value;
+        _logger = logger;
     }
 
     public async Task<PagedResult<ClienteListDto>> Handle(GetClientesQuery request, CancellationToken cancellationToken)
     {
+        // Gerar chave de cache
+        var cacheKey = CacheKeyHelper.GetSearchClientesKey(
+            request.Nome,
+            request.Cpf,
+            request.Email,
+            request.Page,
+            request.PageSize,
+            request.SortBy,
+            request.Descending);
+
+        // Usar cache com GetOrCreateAsync
+        return await _cacheService.GetOrCreateAsync(
+            cacheKey,
+            async ct => await FetchFromDatabaseAsync(request, ct),
+            TimeSpan.FromMinutes(_cacheSettings.SearchClientesTTLMinutes),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Busca os dados diretamente do banco de dados
+    /// </summary>
+    private async Task<PagedResult<ClienteListDto>> FetchFromDatabaseAsync(GetClientesQuery request, CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Cache miss para busca de clientes - buscando do banco de dados");
+
         // Construir expressão de filtro dinâmica
         Expression<Func<Domain.Entities.Cliente, bool>>? filter = BuildFilterExpression(request);
 

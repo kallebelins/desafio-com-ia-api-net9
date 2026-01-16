@@ -22,9 +22,11 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
         builder.ConfigureAppConfiguration((context, config) =>
         {
             // Adicionar configuração de teste com connection string do container
+            // Desabilitar cache durante testes para garantir isolamento
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                { "ConnectionStrings:DefaultConnection", _connectionString }
+                { "ConnectionStrings:DefaultConnection", _connectionString },
+                { "Cache:Enabled", "false" }
             });
         });
 

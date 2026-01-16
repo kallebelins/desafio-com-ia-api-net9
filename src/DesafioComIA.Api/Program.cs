@@ -1,7 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.OpenApi.Models;
 using FluentValidation;
+using StackExchange.Redis;
 using DesafioComIA.Infrastructure.Data;
+using DesafioComIA.Infrastructure.Caching;
+using DesafioComIA.Infrastructure.Configuration;
+using DesafioComIA.Infrastructure.Services.Cache;
 using DesafioComIA.Api.Middleware;
 using Mvp24Hours.Extensions;
 using Mvp24Hours.Infrastructure.Cqrs.Extensions;
@@ -84,12 +89,63 @@ builder.Services.AddValidatorsFromAssembly(applicationAssembly);
 // Include Application assembly where DTOs and mappings will be defined
 builder.Services.AddMvp24HoursMapService(applicationAssembly);
 
+// Configure Cache Settings
+builder.Services.Configure<CacheSettings>(builder.Configuration.GetSection(CacheSettings.SectionName));
+
+// Configure Redis Connection (optional, for L2 distributed cache)
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+if (!string.IsNullOrEmpty(redisConnectionString))
+{
+    try
+    {
+        builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+            ConnectionMultiplexer.Connect(redisConnectionString));
+
+        // Configure Redis as distributed cache backend for HybridCache
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnectionString;
+            options.InstanceName = builder.Configuration.GetSection("Cache:KeyPrefix").Value ?? "desafiocomia:";
+        });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Warning] Não foi possível conectar ao Redis: {ex.Message}. Cache funcionará apenas em memória.");
+    }
+}
+
+// Configure HybridCache (.NET 9)
+var cacheSettings = builder.Configuration.GetSection(CacheSettings.SectionName).Get<CacheSettings>() ?? new CacheSettings();
+builder.Services.AddHybridCache(options =>
+{
+    options.MaximumPayloadBytes = cacheSettings.MaximumPayloadBytes;
+    options.MaximumKeyLength = cacheSettings.MaximumKeyLength;
+    options.DefaultEntryOptions = new HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromMinutes(cacheSettings.DefaultTTLMinutes),
+        LocalCacheExpiration = TimeSpan.FromMinutes(cacheSettings.LocalCacheTTLMinutes)
+    };
+});
+
+// Register Cache Service
+builder.Services.AddSingleton<ICacheService, HybridCacheService>();
+
 // Configure Health Checks
 builder.Services.AddHealthChecks()
     .AddNpgSql(
         builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty,
         name: "postgresql",
         failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded);
+
+// Add Redis health check if configured
+if (!string.IsNullOrEmpty(redisConnectionString))
+{
+    builder.Services.AddHealthChecks()
+        .AddRedis(
+            redisConnectionString,
+            name: "redis",
+            failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Degraded);
+}
 
 // Configure ProblemDetails
 builder.Services.AddProblemDetails();
