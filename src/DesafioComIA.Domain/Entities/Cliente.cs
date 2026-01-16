@@ -25,4 +25,34 @@ public class Cliente : EntityBase<Guid>
         Email = email;
         CreatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Atualiza o nome do cliente
+    /// </summary>
+    /// <param name="nome">Novo nome do cliente</param>
+    public void AtualizarNome(string nome)
+    {
+        Nome = nome;
+        ModifiedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Atualiza o CPF do cliente
+    /// </summary>
+    /// <param name="cpf">Novo CPF do cliente</param>
+    public void AtualizarCpf(Cpf cpf)
+    {
+        Cpf = cpf;
+        ModifiedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Atualiza o e-mail do cliente
+    /// </summary>
+    /// <param name="email">Novo e-mail do cliente</param>
+    public void AtualizarEmail(Email email)
+    {
+        Email = email;
+        ModifiedAt = DateTime.UtcNow;
+    }
 }

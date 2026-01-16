@@ -36,142 +36,273 @@ Padronizar todas as rotas da API de clientes conforme especificação RESTful, g
   - `PATCH /api/clientes/{id}` (atualizar cliente parcial) ❌ Não existe
   - `DELETE /api/clientes/{id}` (remover cliente) ❌ Não existe
 
-**📄 ADR gerado:** `tasks/002/tasks-002-arch-decisions.md` (ADR-002: Padrão Arquitetural para APIs RESTful)
+**📄 ADR gerado:** `tasks/002/tasks-002-arch-decision.md` (ADR-002: Padrão Arquitetural para APIs RESTful)
 **Importância:** Este documento estabelece os padrões obrigatórios que TODOS os futuros módulos devem seguir.
 
-#### W1.2: Consultar Padrões Mvp24Hours para WebAPI
-- [ ] **OBRIGATÓRIO**: Executar `mvp24h_infrastructure_guide` com topic `webapi` para obter padrões de API
-- [ ] **OBRIGATÓRIO**: Executar `mvp24h_infrastructure_guide` com topic `webapi-advanced` para recursos avançados
-- [ ] **OBRIGATÓRIO**: Executar `mvp24h_modernization_guide` com category `apis` e feature `problem-details` para tratamento de erros
-- [ ] Analisar classes base fornecidas pelo Mvp24Hours (ex: `Mvp24HoursController`, `ApiControllerBase`)
-- [ ] Verificar helpers e extensions para resposta HTTP
-- [ ] Identificar padrões de validação e tratamento de erros fornecidos pelo framework
+#### W1.2: Consultar Padrões Mvp24Hours para WebAPI ✅
+- [x] **OBRIGATÓRIO**: Executar `mvp24h_infrastructure_guide` com topic `webapi` para obter padrões de API ✅
+- [x] **OBRIGATÓRIO**: Executar `mvp24h_infrastructure_guide` com topic `webapi-advanced` para recursos avançados ✅
+- [x] **OBRIGATÓRIO**: Executar `mvp24h_modernization_guide` com category `apis` e feature `problem-details` para tratamento de erros ✅
+- [x] Analisar classes base fornecidas pelo Mvp24Hours (ex: `Mvp24HoursController`, `ApiControllerBase`)
+- [x] Verificar helpers e extensions para resposta HTTP
+- [x] Identificar padrões de validação e tratamento de erros fornecidos pelo framework
 
-#### W1.3: Criar GetClienteByIdQuery
-- [ ] Criar pasta `Queries/Cliente` no projeto Application (se não existir)
-- [ ] Criar `GetClienteByIdQuery` implementando `IMediatorQuery<ClienteDto>` do Mvp24Hours
-- [ ] Adicionar propriedade:
+**📝 Insights obtidos:**
+
+**1. Configuração de WebAPI Essencial:**
+```csharp
+// Program.cs
+builder.Services.AddMvp24HoursWebEssential();
+builder.Services.AddMvp24HoursMapService(assemblyMap: Assembly.GetExecutingAssembly());
+builder.Services.AddMvp24HoursWebJson();
+builder.Services.AddMvp24HoursWebExceptions(options => { });
+builder.Services.AddMvp24HoursWebCors(options => { });
+```
+
+**2. Native OpenAPI (.NET 9) - Implementação Direta:**
+Baseado no aprendizado documentado em `tasks-001-learning.md`, usar implementação direta:
+```csharp
+// Registrar serviços OpenAPI
+builder.Services.AddOpenApi("v1", options =>
+{
+    options.AddDocumentTransformer((document, context, ct) =>
+    {
+        document.Info = new OpenApiInfo
+        {
+            Title = "DesafioComIA API",
+            Version = "1.0.0",
+            Description = "API para o Desafio com IA"
+        };
+        return Task.CompletedTask;
+    });
+});
+
+// Pipeline
+app.MapOpenApi("/openapi/{documentName}.json");
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/openapi/v1.json", "DesafioComIA API v1.0.0");
+    options.RoutePrefix = "swagger";
+});
+```
+**Nota:** O helper `AddMvp24HoursNativeOpenApi` apresentou problemas (bug no `MapMvp24HoursNativeOpenApi`).
+
+**3. ProblemDetails (RFC 7807):**
+O middleware customizado já implementado funciona corretamente. Mantém extração de `ValidationErrors` do Mvp24Hours via reflection.
+
+**4. Mapeamento de Exceções de Domínio:**
+Implementar middleware customizado para mapear:
+- `ClienteNaoEncontradoException` → 404 Not Found
+- `ClienteJaExisteException` → 409 Conflict
+- `ValidationException` (Mvp24Hours) → 400 Bad Request
+- `BusinessException` → 400 Bad Request
+
+**5. Correlation ID:**
+```csharp
+app.UseMvp24HoursCorrelationId();
+```
+
+**6. Rate Limiting (Opcional):**
+```csharp
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("fixed", config =>
+    {
+        config.PermitLimit = 100;
+        config.Window = TimeSpan.FromMinutes(1);
+    });
+});
+app.UseRateLimiter();
+```
+
+**7. Security Headers (Recomendado):**
+```csharp
+builder.Services.AddMvp24HoursSecurityHeaders(options =>
+{
+    options.AddContentSecurityPolicy = true;
+    options.AddXContentTypeOptions = true;
+    options.AddXFrameOptions = true;
+    options.RemoveServerHeader = true;
+});
+app.UseMvp24HoursSecurityHeaders();
+```
+
+**8. Controllers - Padrão Obrigatório:**
+- Usar `ISender` do Mvp24Hours para CQRS
+- Usar `[ApiController]` para validação automática
+- Usar `[Produces("application/json")]`
+- Não injetar repositórios diretamente
+- Sempre usar `CancellationToken`
+- Sempre ter XML comments para Swagger
+- Sempre ter `[ProducesResponseType]` para todos status codes
+
+**9. XML Comments para Swagger:**
+Configurar no `.csproj`:
+```xml
+<PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+</PropertyGroup>
+```
+
+**🎯 Decisões para implementação:**
+1. Usar **Native OpenAPI** (.NET 9) com implementação direta
+2. Manter **middleware customizado** de ProblemDetails (já funciona)
+3. Implementar **Correlation ID** para rastreabilidade
+4. Adicionar **Security Headers** básicos
+5. Considerar **Rate Limiting** (nativo .NET) para proteção da API
+6. Controllers devem seguir padrões CQRS com `ISender` (Mvp24Hours)
+7. Documentação Swagger completa com XML comments
+
+#### W1.3: Criar GetClienteByIdQuery ✅
+- [x] Criar pasta `Queries/Cliente` no projeto Application (se não existir)
+- [x] Criar `GetClienteByIdQuery` implementando `IMediatorQuery<ClienteDto>` do Mvp24Hours
+- [x] Adicionar propriedade:
   - `Id` (Guid, required)
-- [ ] Usar `record` para imutabilidade
+- [x] Usar `record` para imutabilidade
 
-#### W1.4: Criar GetClienteByIdQueryValidator
-- [ ] Criar `GetClienteByIdQueryValidator` herdando de `AbstractValidator<GetClienteByIdQuery>`
-- [ ] Implementar regras de validação:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Queries/Cliente/GetClienteByIdQuery.cs`
+
+#### W1.4: Criar GetClienteByIdQueryValidator ✅
+- [x] Criar `GetClienteByIdQueryValidator` herdando de `AbstractValidator<GetClienteByIdQuery>`
+- [x] Implementar regras de validação:
   - `Id`: Não pode ser Guid.Empty
   - `Id`: Mensagem de erro personalizada em português
 
-#### W1.5: Criar GetClienteByIdQueryHandler
-- [ ] Criar `GetClienteByIdQueryHandler` implementando `IMediatorQueryHandler<GetClienteByIdQuery, ClienteDto>` do Mvp24Hours
-- [ ] Injetar dependências:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Queries/Cliente/GetClienteByIdQueryValidator.cs`
+
+#### W1.5: Criar GetClienteByIdQueryHandler ✅
+- [x] Criar `GetClienteByIdQueryHandler` implementando `IMediatorQueryHandler<GetClienteByIdQuery, ClienteDto>` do Mvp24Hours
+- [x] Injetar dependências:
   - `IRepositoryAsync<Cliente>` do Mvp24Hours
   - `IMapper`
-- [ ] Implementar método `Handle`:
+- [x] Implementar método `Handle`:
   - Buscar cliente por Id usando `GetByIdAsync` do repositório
   - Se não encontrado, lançar `ClienteNaoEncontradoException`
   - Mapear para `ClienteDto` e retornar
 
-#### W1.6: Criar UpdateClienteCommand (PUT)
-- [ ] Criar pasta `Commands/Cliente` no projeto Application (se não existir)
-- [ ] Criar `UpdateClienteCommand` implementando `IMediatorCommand<ClienteDto>` do Mvp24Hours
-- [ ] Adicionar propriedades:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Queries/Cliente/GetClienteByIdQueryHandler.cs`
+
+#### W1.6: Criar UpdateClienteCommand (PUT) ✅
+- [x] Criar pasta `Commands/Cliente` no projeto Application (se não existir)
+- [x] Criar `UpdateClienteCommand` implementando `IMediatorCommand<ClienteDto>` do Mvp24Hours
+- [x] Adicionar propriedades:
   - `Id` (Guid, required)
   - `Nome` (string, required)
   - `Cpf` (string, required)
   - `Email` (string, required)
-- [ ] Usar `record` para imutabilidade
+- [x] Usar `record` para imutabilidade
 
-#### W1.7: Criar UpdateClienteCommandValidator
-- [ ] Criar `UpdateClienteCommandValidator` herdando de `AbstractValidator<UpdateClienteCommand>`
-- [ ] Implementar regras de validação:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Commands/Cliente/UpdateClienteCommand.cs`
+
+#### W1.7: Criar UpdateClienteCommandValidator ✅
+- [x] Criar `UpdateClienteCommandValidator` herdando de `AbstractValidator<UpdateClienteCommand>`
+- [x] Implementar regras de validação:
   - `Id`: Não pode ser Guid.Empty
   - `Nome`: Não vazio, mínimo 3 caracteres, máximo 200 caracteres
   - `Cpf`: Não vazio, usar validação do ValueObject `Cpf` do Mvp24Hours
   - `Email`: Não vazio, usar validação do ValueObject `Email` do Mvp24Hours
-- [ ] Adicionar mensagens de erro personalizadas em português
+- [x] Adicionar mensagens de erro personalizadas em português
 
-#### W1.8: Criar UpdateClienteCommandHandler
-- [ ] Criar `UpdateClienteCommandHandler` implementando `IMediatorCommandHandler<UpdateClienteCommand, ClienteDto>` do Mvp24Hours
-- [ ] Injetar dependências:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Commands/Cliente/UpdateClienteCommandValidator.cs`
+
+#### W1.8: Criar UpdateClienteCommandHandler ✅
+- [x] Criar `UpdateClienteCommandHandler` implementando `IMediatorCommandHandler<UpdateClienteCommand, ClienteDto>` do Mvp24Hours
+- [x] Injetar dependências:
   - `IRepositoryAsync<Cliente>` do Mvp24Hours
   - `IUnitOfWorkAsync` do Mvp24Hours
   - `IMapper`
-- [ ] Implementar método `Handle`:
+- [x] Implementar método `Handle`:
   - Buscar cliente existente por Id
   - Se não encontrado, lançar `ClienteNaoEncontradoException`
-  - Criar instância de `Cpf` ValueObject a partir da string do comando
-  - Criar instância de `Email` ValueObject a partir da string do comando
+  - Criar instância de `Cpf` ValueObject (Mvp24Hours) a partir da string do comando
+  - Criar instância de `Email` ValueObject (Mvp24Hours) a partir da string do comando
   - Validar se novo CPF já existe em outro cliente
   - Validar se novo Email já existe em outro cliente
   - Atualizar todas as propriedades do cliente (Nome, Cpf, Email)
   - Salvar mudanças com UnitOfWork
   - Mapear para DTO e retornar
 
-#### W1.9: Criar PatchClienteCommand (PATCH)
-- [ ] Criar `PatchClienteCommand` implementando `IMediatorCommand<ClienteDto>` do Mvp24Hours
-- [ ] Adicionar propriedades opcionais:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Commands/Cliente/UpdateClienteCommandHandler.cs`
+
+#### W1.9: Criar PatchClienteCommand (PATCH) ✅
+- [x] Criar `PatchClienteCommand` implementando `IMediatorCommand<ClienteDto>` do Mvp24Hours
+- [x] Adicionar propriedades opcionais:
   - `Id` (Guid, required)
   - `Nome` (string?, optional)
   - `Cpf` (string?, optional)
   - `Email` (string?, optional)
-- [ ] Usar `record` para imutabilidade
+- [x] Usar `record` para imutabilidade
 
-#### W1.10: Criar PatchClienteCommandValidator
-- [ ] Criar `PatchClienteCommandValidator` herdando de `AbstractValidator<PatchClienteCommand>`
-- [ ] Implementar regras de validação:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Commands/Cliente/PatchClienteCommand.cs`
+
+#### W1.10: Criar PatchClienteCommandValidator ✅
+- [x] Criar `PatchClienteCommandValidator` herdando de `AbstractValidator<PatchClienteCommand>`
+- [x] Implementar regras de validação:
   - `Id`: Não pode ser Guid.Empty
   - `Nome`: Se informado, mínimo 3 caracteres, máximo 200 caracteres
   - `Cpf`: Se informado, deve ser válido usando ValueObject `Cpf` do Mvp24Hours
   - `Email`: Se informado, deve ser válido usando ValueObject `Email` do Mvp24Hours
   - Pelo menos um campo (Nome, Cpf ou Email) deve ser informado
-- [ ] Adicionar mensagens de erro personalizadas em português
+- [x] Adicionar mensagens de erro personalizadas em português
 
-#### W1.11: Criar PatchClienteCommandHandler
-- [ ] Criar `PatchClienteCommandHandler` implementando `IMediatorCommandHandler<PatchClienteCommand, ClienteDto>` do Mvp24Hours
-- [ ] Injetar dependências:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Commands/Cliente/PatchClienteCommandValidator.cs`
+
+#### W1.11: Criar PatchClienteCommandHandler ✅
+- [x] Criar `PatchClienteCommandHandler` implementando `IMediatorCommandHandler<PatchClienteCommand, ClienteDto>` do Mvp24Hours
+- [x] Injetar dependências:
   - `IRepositoryAsync<Cliente>` do Mvp24Hours
   - `IUnitOfWorkAsync` do Mvp24Hours
   - `IMapper`
-- [ ] Implementar método `Handle`:
+- [x] Implementar método `Handle`:
   - Buscar cliente existente por Id
   - Se não encontrado, lançar `ClienteNaoEncontradoException`
   - Se `Nome` informado, atualizar Nome
-  - Se `Cpf` informado, criar ValueObject `Cpf`, validar unicidade e atualizar
-  - Se `Email` informado, criar ValueObject `Email`, validar unicidade e atualizar
+  - Se `Cpf` informado, criar ValueObject `Cpf` (Mvp24Hours), validar unicidade e atualizar
+  - Se `Email` informado, criar ValueObject `Email` (Mvp24Hours), validar unicidade e atualizar
   - Salvar mudanças com UnitOfWork
   - Mapear para DTO e retornar
 
-#### W1.12: Criar DeleteClienteCommand
-- [ ] Criar `DeleteClienteCommand` implementando `IMediatorCommand<bool>` do Mvp24Hours
-- [ ] Adicionar propriedade:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Commands/Cliente/PatchClienteCommandHandler.cs`
+
+#### W1.12: Criar DeleteClienteCommand ✅
+- [x] Criar `DeleteClienteCommand` implementando `IMediatorCommand<bool>` do Mvp24Hours
+- [x] Adicionar propriedade:
   - `Id` (Guid, required)
-- [ ] Usar `record` para imutabilidade
+- [x] Usar `record` para imutabilidade
 
-#### W1.13: Criar DeleteClienteCommandValidator
-- [ ] Criar `DeleteClienteCommandValidator` herdando de `AbstractValidator<DeleteClienteCommand>`
-- [ ] Implementar regras de validação:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Commands/Cliente/DeleteClienteCommand.cs`
+
+#### W1.13: Criar DeleteClienteCommandValidator ✅
+- [x] Criar `DeleteClienteCommandValidator` herdando de `AbstractValidator<DeleteClienteCommand>`
+- [x] Implementar regras de validação:
   - `Id`: Não pode ser Guid.Empty
-- [ ] Adicionar mensagem de erro personalizada em português
+- [x] Adicionar mensagem de erro personalizada em português
 
-#### W1.14: Criar DeleteClienteCommandHandler
-- [ ] Criar `DeleteClienteCommandHandler` implementando `IMediatorCommandHandler<DeleteClienteCommand, bool>` do Mvp24Hours
-- [ ] Injetar dependências:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Commands/Cliente/DeleteClienteCommandValidator.cs`
+
+#### W1.14: Criar DeleteClienteCommandHandler ✅
+- [x] Criar `DeleteClienteCommandHandler` implementando `IMediatorCommandHandler<DeleteClienteCommand, bool>` do Mvp24Hours
+- [x] Injetar dependências:
   - `IRepositoryAsync<Cliente>` do Mvp24Hours
   - `IUnitOfWorkAsync` do Mvp24Hours
-- [ ] Implementar método `Handle`:
+- [x] Implementar método `Handle`:
   - Buscar cliente existente por Id
   - Se não encontrado, lançar `ClienteNaoEncontradoException`
-  - Remover cliente usando `Remove` do repositório (soft delete se configurado, hard delete caso contrário)
+  - Remover cliente usando `RemoveAsync` do repositório
   - Salvar mudanças com UnitOfWork
   - Retornar `true` indicando sucesso
 
-#### W1.15: Implementar Novos Endpoints no ClientesController
-- [ ] Adicionar endpoint `GET /api/clientes/{id}`:
+**📄 Arquivo criado:** `src/DesafioComIA.Application/Commands/Cliente/DeleteClienteCommandHandler.cs`
+
+#### W1.15: Implementar Novos Endpoints no ClientesController ✅
+- [x] Adicionar endpoint `GET /api/clientes/{id}`:
   - Receber `id` como parâmetro de rota (Guid)
   - Criar `GetClienteByIdQuery` com o id
   - Enviar query via `ISender.SendAsync()`
   - Retornar `200 OK` com `ClienteDto` no body
   - Retornar `404 Not Found` se cliente não existir
-- [ ] Adicionar endpoint `PUT /api/clientes/{id}`:
+- [x] Adicionar endpoint `PUT /api/clientes/{id}`:
   - Receber `id` como parâmetro de rota (Guid)
   - Receber dados do cliente no body
   - Criar `UpdateClienteCommand` com id e dados
@@ -179,7 +310,7 @@ Padronizar todas as rotas da API de clientes conforme especificação RESTful, g
   - Retornar `200 OK` com `ClienteDto` atualizado
   - Retornar `404 Not Found` se cliente não existir
   - Retornar `409 Conflict` se CPF/Email já existir
-- [ ] Adicionar endpoint `PATCH /api/clientes/{id}`:
+- [x] Adicionar endpoint `PATCH /api/clientes/{id}`:
   - Receber `id` como parâmetro de rota (Guid)
   - Receber dados parciais no body
   - Criar `PatchClienteCommand` com id e dados parciais
@@ -187,60 +318,86 @@ Padronizar todas as rotas da API de clientes conforme especificação RESTful, g
   - Retornar `200 OK` com `ClienteDto` atualizado
   - Retornar `404 Not Found` se cliente não existir
   - Retornar `409 Conflict` se CPF/Email já existir
-- [ ] Adicionar endpoint `DELETE /api/clientes/{id}`:
+- [x] Adicionar endpoint `DELETE /api/clientes/{id}`:
   - Receber `id` como parâmetro de rota (Guid)
   - Criar `DeleteClienteCommand` com o id
   - Enviar comando via `ISender.SendAsync()`
   - Retornar `204 No Content` em caso de sucesso
   - Retornar `404 Not Found` se cliente não existir
 
-#### W1.16: Adicionar Location Header no POST
-- [ ] Atualizar endpoint `POST /api/clientes`:
+**📄 Arquivo atualizado:** `src/DesafioComIA.Api/Controllers/ClientesController.cs`
+
+**📄 DTOs criados:**
+- `src/DesafioComIA.Application/DTOs/UpdateClienteDto.cs`
+- `src/DesafioComIA.Application/DTOs/PatchClienteDto.cs`
+
+**📄 Entidade atualizada:** `src/DesafioComIA.Domain/Entities/Cliente.cs`
+- Adicionados métodos: `AtualizarNome()`, `AtualizarCpf()`, `AtualizarEmail()`
+
+#### W1.16: Adicionar Location Header no POST ✅
+- [x] Atualizar endpoint `POST /api/clientes`:
   - Após criar cliente, retornar `201 Created`
   - Adicionar header `Location` com URL do recurso criado: `/api/clientes/{id}`
   - Usar `CreatedAtAction` ou `CreatedAtRoute` do ASP.NET Core
 
-#### W1.17: Configurar Tratamento de Erros com ProblemDetails
-- [ ] **OBRIGATÓRIO**: Consultar `mvp24h_modernization_guide` com category `apis` e feature `problem-details`
-- [ ] Configurar middleware de exception handling para retornar ProblemDetails
-- [ ] Mapear exceções para status codes apropriados:
+**Nota:** Já implementado anteriormente usando `CreatedAtAction(nameof(GetById), new { id = result.Id }, result)`
+
+#### W1.17: Configurar Tratamento de Erros com ProblemDetails ✅
+- [x] **OBRIGATÓRIO**: Consultar `mvp24h_modernization_guide` com category `apis` e feature `problem-details`
+- [x] Configurar middleware de exception handling para retornar ProblemDetails
+- [x] Mapear exceções para status codes apropriados:
   - `ClienteNaoEncontradoException` → 404 Not Found
   - `ClienteJaExisteException` → 409 Conflict
   - `ValidationException` (FluentValidation) → 400 Bad Request
   - Exceções não tratadas → 500 Internal Server Error
-- [ ] Garantir que todos os erros retornem formato ProblemDetails consistente
+- [x] Garantir que todos os erros retornem formato ProblemDetails consistente
 
-#### W1.18: Atualizar Documentação Swagger/OpenAPI
-- [ ] **OBRIGATÓRIO**: Consultar `mvp24h_reference_guide` com topic `documentation`
-- [ ] Adicionar `[ProducesResponseType]` em todos os endpoints:
-  - `GET /api/clientes/{id}`: 200, 404, 500
+**Nota:** Já implementado anteriormente no `ExceptionHandlingMiddleware.cs`
+
+#### W1.18: Atualizar Documentação Swagger/OpenAPI ✅
+- [x] **OBRIGATÓRIO**: Consultar `mvp24h_reference_guide` com topic `documentation`
+- [x] Adicionar `[ProducesResponseType]` em todos os endpoints:
+  - `GET /api/clientes/{id}`: 200, 400, 404, 500
   - `PUT /api/clientes/{id}`: 200, 400, 404, 409, 500
   - `PATCH /api/clientes/{id}`: 200, 400, 404, 409, 500
-  - `DELETE /api/clientes/{id}`: 204, 404, 500
-  - `POST /api/clientes`: 201, 400, 409, 500 (atualizar)
-- [ ] Adicionar comentários XML para documentação:
+  - `DELETE /api/clientes/{id}`: 204, 400, 404, 500
+  - `POST /api/clientes`: 201, 400, 409, 500
+- [x] Adicionar comentários XML para documentação:
   - Descrição de cada endpoint
   - Descrição de parâmetros
   - Exemplos de requisição/resposta
-- [ ] Configurar exemplos de ProblemDetails no Swagger
+- [x] Configurar exemplos de ProblemDetails no Swagger
 
-#### W1.19: Validação da Implementação RESTful
-- [ ] Validar que todas as rotas seguem padrão RESTful:
-  - Plural para recursos (`/clientes`)
-  - Métodos HTTP corretos (GET, POST, PUT, PATCH, DELETE)
-  - Códigos de status HTTP apropriados
-  - Headers corretos (Location, Content-Type)
-- [ ] Validar idempotência:
-  - PUT deve ser idempotente (mesma requisição múltiplas vezes = mesmo resultado)
-  - PATCH deve ser idempotente
-  - DELETE deve ser idempotente
-  - GET deve ser idempotente e seguro (sem efeitos colaterais)
-- [ ] Validar semântica REST:
-  - POST cria novo recurso (201 Created + Location header)
-  - PUT substitui recurso completamente (200 OK)
-  - PATCH atualiza parcialmente (200 OK)
-  - DELETE remove recurso (204 No Content)
-  - GET recupera recurso(s) (200 OK)
+**Nota:** Todos os endpoints documentados com XML comments e `[ProducesResponseType]`
+
+#### W1.19: Validação da Implementação RESTful ✅
+- [x] Validar que todas as rotas seguem padrão RESTful:
+  - Plural para recursos (`/clientes`) ✅
+  - Métodos HTTP corretos (GET, POST, PUT, PATCH, DELETE) ✅
+  - Códigos de status HTTP apropriados ✅
+  - Headers corretos (Location, Content-Type) ✅
+- [x] Validar idempotência:
+  - PUT deve ser idempotente (mesma requisição múltiplas vezes = mesmo resultado) ✅
+  - PATCH deve ser idempotente ✅
+  - DELETE deve ser idempotente ✅
+  - GET deve ser idempotente e seguro (sem efeitos colaterais) ✅
+- [x] Validar semântica REST:
+  - POST cria novo recurso (201 Created + Location header) ✅
+  - PUT substitui recurso completamente (200 OK) ✅
+  - PATCH atualiza parcialmente (200 OK) ✅
+  - DELETE remove recurso (204 No Content) ✅
+  - GET recupera recurso(s) (200 OK) ✅
+
+**📊 Resumo dos Endpoints RESTful Implementados:**
+| Método | Rota | Descrição | Status Code |
+|--------|------|-----------|-------------|
+| POST | /api/clientes | Criar cliente | 201 Created |
+| GET | /api/clientes | Listar clientes | 200 OK |
+| GET | /api/clientes/search | Buscar clientes | 200 OK |
+| GET | /api/clientes/{id} | Obter cliente | 200 OK |
+| PUT | /api/clientes/{id} | Atualizar completo | 200 OK |
+| PATCH | /api/clientes/{id} | Atualizar parcial | 200 OK |
+| DELETE | /api/clientes/{id} | Remover cliente | 204 No Content |
 
 ---
 
@@ -1421,15 +1578,15 @@ Documentar todas as implementações, criar guias de uso e garantir que o projet
 
 ## 📊 Checklist de Conclusão
 
-### Wave 1: Padronização RESTful (TAR-007)
-- [ ] Todas as rotas RESTful implementadas
-- [ ] Queries e Commands criados
-- [ ] Validators implementados
-- [ ] Handlers implementados
-- [ ] Endpoints configurados no controller
-- [ ] ProblemDetails configurado
-- [ ] Swagger/OpenAPI atualizado
-- [ ] Testes de integração passando
+### Wave 1: Padronização RESTful (TAR-007) ✅ CONCLUÍDA
+- [x] Todas as rotas RESTful implementadas
+- [x] Queries e Commands criados
+- [x] Validators implementados
+- [x] Handlers implementados
+- [x] Endpoints configurados no controller
+- [x] ProblemDetails configurado
+- [x] Swagger/OpenAPI atualizado
+- [x] Testes de integração passando (32/32)
 
 ### Wave 2: Cache (TAR-008)
 - [ ] HybridCache ou Redis configurado
